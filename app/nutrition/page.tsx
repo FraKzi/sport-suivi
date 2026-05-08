@@ -1,10 +1,19 @@
 import { prisma } from "@/lib/prisma";
+import { MealSlot } from "@prisma/client";
 import { Card, CardTitle, Badge } from "@/components/ui";
 import { computeTargets, GOAL_LABEL, rescalePlan, macrosForMeal } from "@/lib/macros";
 import { WeightLogger } from "./WeightLogger";
+import { VariantSelector } from "./VariantSelector";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+
+const SLOT_LABEL: Record<MealSlot, string> = {
+  BREAKFAST: "Petit-déjeuner",
+  LUNCH: "Déjeuner",
+  DINNER: "Dîner",
+};
+const SLOT_ORDER: MealSlot[] = ["BREAKFAST", "LUNCH", "DINNER"];
 
 function formatQty(quantity: number, unit: string) {
   if (unit === "piece") return `${quantity % 1 === 0 ? quantity : quantity.toFixed(1)} ×`;
@@ -17,29 +26,58 @@ export default async function NutritionPage() {
   const basePlan = await prisma.mealPlan.findFirst({
     where: { isBase: true },
     include: {
-      meals: {
-        orderBy: { orderIndex: "asc" },
-        include: { items: { include: { food: true } } },
-      },
+      meals: { include: { items: { include: { food: true } } } },
     },
   });
-
+  const prefs = await prisma.userMealPreference.findMany();
   const weights = await prisma.weightLog.findMany({ orderBy: { date: "desc" }, take: 20 });
 
   if (!basePlan) {
     return <p className="text-sm">Plan de base manquant. Relance le seed.</p>;
   }
 
-  const baseTotals = {
-    kcal: basePlan.totalKcal,
-    proteinG: basePlan.totalProtein,
-    carbsG: basePlan.totalCarbs,
-    fatG: basePlan.totalFat,
+  const variantsBySlot: Record<MealSlot, typeof basePlan.meals> = {
+    BREAKFAST: [],
+    LUNCH: [],
+    DINNER: [],
   };
+  for (const m of basePlan.meals) variantsBySlot[m.slot].push(m);
+  for (const s of SLOT_ORDER) {
+    variantsBySlot[s].sort((a, b) => {
+      if (a.variantKey === "default") return -1;
+      if (b.variantKey === "default") return 1;
+      return a.displayName.localeCompare(b.displayName);
+    });
+  }
 
-  let displayMeals = basePlan.meals.map((m) => ({
-    name: m.name,
-    orderIndex: m.orderIndex,
+  const prefBySlot = new Map(prefs.map((p) => [p.slot, p.mealId]));
+
+  // Sélection des variantes actives
+  const activeMeals = SLOT_ORDER.map((slot) => {
+    const prefId = prefBySlot.get(slot);
+    let chosen = prefId
+      ? basePlan.meals.find((m) => m.id === prefId && m.slot === slot)
+      : null;
+    if (!chosen) {
+      chosen =
+        basePlan.meals.find((m) => m.slot === slot && m.variantKey === "default") ??
+        basePlan.meals.find((m) => m.slot === slot)!;
+    }
+    return chosen;
+  });
+
+  // Macros de base (somme des 3 variantes actives)
+  let bk = 0, bp = 0, bc = 0, bf = 0;
+  for (const m of activeMeals) {
+    const mac = macrosForMeal(m.items.map((it) => ({ foodId: it.foodId, quantity: it.quantity, food: it.food })));
+    bk += mac.kcal; bp += mac.proteinG; bc += mac.carbsG; bf += mac.fatG;
+  }
+  const baseTotals = { kcal: bk, proteinG: bp, carbsG: bc, fatG: bf };
+
+  let displayMeals = activeMeals.map((m, idx) => ({
+    slot: m.slot,
+    name: SLOT_LABEL[m.slot],
+    orderIndex: idx,
     items: m.items.map((it) => ({ foodId: it.foodId, quantity: it.quantity, food: it.food })),
   }));
 
@@ -49,7 +87,7 @@ export default async function NutritionPage() {
   if (profile) {
     targets = computeTargets(profile.currentWeight, profile.tdee, profile.goal);
     const res = rescalePlan(displayMeals, baseTotals, targets);
-    displayMeals = res.meals;
+    displayMeals = res.meals.map((m, idx) => ({ ...m, slot: activeMeals[idx].slot }));
     actualTotals = res.totals;
   }
 
@@ -87,12 +125,12 @@ export default async function NutritionPage() {
             <tbody>
               {(
                 [
-                  ["Calories", "kcal", targets.kcal, actualTotals.kcal, "kcal"],
-                  ["Protéines", "proteinG", targets.proteinG, actualTotals.proteinG, "g"],
-                  ["Glucides", "carbsG", targets.carbsG, actualTotals.carbsG, "g"],
-                  ["Lipides", "fatG", targets.fatG, actualTotals.fatG, "g"],
+                  ["Calories", targets.kcal, actualTotals.kcal, "kcal"],
+                  ["Protéines", targets.proteinG, actualTotals.proteinG, "g"],
+                  ["Glucides", targets.carbsG, actualTotals.carbsG, "g"],
+                  ["Lipides", targets.fatG, actualTotals.fatG, "g"],
                 ] as const
-              ).map(([label, , cible, plan, unit]) => {
+              ).map(([label, cible, plan, unit]) => {
                 const delta = plan - cible;
                 const pct = cible ? Math.round((delta / cible) * 100) : 0;
                 const color = Math.abs(pct) <= 5 ? "text-success" : Math.abs(pct) <= 10 ? "text-warning" : "text-danger";
@@ -130,16 +168,31 @@ export default async function NutritionPage() {
 
       <div className="space-y-3">
         {displayMeals.map((meal) => {
+          const slot = meal.slot;
+          const active = activeMeals.find((m) => m.slot === slot)!;
+          const variants = variantsBySlot[slot];
           const mac = macrosForMeal(meal.items);
           return (
-            <Card key={meal.orderIndex}>
-              <div className="flex items-baseline justify-between mb-2">
+            <Card key={slot}>
+              <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
                 <CardTitle>{meal.name}</CardTitle>
                 <span className="text-xs text-muted">
                   {mac.kcal} kcal · {mac.proteinG}P / {mac.carbsG}C / {mac.fatG}L
                 </span>
               </div>
-              <ul className="text-sm divide-y divide-border">
+
+              <VariantSelector
+                slot={slot}
+                activeId={active.id}
+                variants={variants.map((v) => ({
+                  id: v.id,
+                  variantKey: v.variantKey,
+                  displayName: v.displayName,
+                  description: v.description,
+                }))}
+              />
+
+              <ul className="text-sm divide-y divide-border mt-3">
                 {meal.items.map((it) => (
                   <li key={it.foodId} className="py-1.5 flex items-baseline justify-between">
                     <span>{it.food.name}</span>

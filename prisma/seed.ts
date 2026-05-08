@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, MealSlot } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -63,12 +63,27 @@ const foods: {
   { name: "Steak haché 5%",        unit: "g",     kcalPer100: 137, proteinPer100: 21,  carbsPer100: 0,   fatPer100: 5 },
   { name: "Pommes de terre cuites", unit: "g",    kcalPer100: 87,  proteinPer100: 1.9, carbsPer100: 20,  fatPer100: 0.1 },
   { name: "Pain complet",          unit: "piece", unitGrams: 30, kcalPer100: 247, proteinPer100: 9,   carbsPer100: 41,  fatPer100: 4 },
+  // Nouveaux pour les variantes économiques
+  { name: "Thon nature en boîte",  unit: "g",     kcalPer100: 116, proteinPer100: 26,  carbsPer100: 0,   fatPer100: 1 },
+  { name: "Pâtes cuites",          unit: "g",     kcalPer100: 158, proteinPer100: 5.8, carbsPer100: 31,  fatPer100: 0.9 },
 ];
 
-// ---------- Plan de base (issu du PDF) ----------
-const basePlan: { name: string; items: { foodName: string; quantity: number }[] }[] = [
+// ---------- Variantes de repas ----------
+type MealVariant = {
+  slot: MealSlot;
+  variantKey: string;
+  displayName: string;
+  description?: string;
+  items: { foodName: string; quantity: number }[];
+};
+
+const mealVariants: MealVariant[] = [
+  // ===== PETIT-DÉJ =====
   {
-    name: "Petit-déjeuner",
+    slot: "BREAKFAST",
+    variantKey: "default",
+    displayName: "Œufs & avoine",
+    description: "Le petit-déj de référence. Riche en protéines, prend ~15 min.",
     items: [
       { foodName: "Flocons d'avoine", quantity: 100 },
       { foodName: "Lait demi-écrémé", quantity: 300 },
@@ -79,7 +94,39 @@ const basePlan: { name: string; items: { foodName: string; quantity: number }[] 
     ],
   },
   {
-    name: "Déjeuner",
+    slot: "BREAKFAST",
+    variantKey: "skyr-avoine",
+    displayName: "Bowl skyr & avoine",
+    description: "Zéro œuf, zéro cuisson. 5 min chrono. Le moins cher.",
+    items: [
+      { foodName: "Flocons d'avoine", quantity: 70 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 300 },
+      { foodName: "Lait demi-écrémé", quantity: 200 },
+      { foodName: "Banane", quantity: 1 },
+      { foodName: "Beurre de cacahuète", quantity: 25 },
+    ],
+  },
+  {
+    slot: "BREAKFAST",
+    variantKey: "toast-oeuf",
+    displayName: "Toast & 1 œuf",
+    description: "Un seul œuf entier. Idéal si tu veux un petit-déj salé.",
+    items: [
+      { foodName: "Pain complet", quantity: 3 },
+      { foodName: "Œuf entier", quantity: 1 },
+      { foodName: "Blancs d'œufs", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Banane", quantity: 1 },
+      { foodName: "Beurre de cacahuète", quantity: 25 },
+    ],
+  },
+
+  // ===== DÉJEUNER =====
+  {
+    slot: "LUNCH",
+    variantKey: "default",
+    displayName: "Poulet & riz",
+    description: "Le classique. Préparation batch, se garde 3 jours au frigo.",
     items: [
       { foodName: "Blanc de poulet cuit", quantity: 180 },
       { foodName: "Riz cuit", quantity: 250 },
@@ -90,7 +137,40 @@ const basePlan: { name: string; items: { foodName: string; quantity: number }[] 
     ],
   },
   {
-    name: "Dîner",
+    slot: "LUNCH",
+    variantKey: "thon-pates",
+    displayName: "Thon & pâtes",
+    description: "Sans cuisson de viande. 10 min chrono. Très économique.",
+    items: [
+      { foodName: "Thon nature en boîte", quantity: 150 },
+      { foodName: "Pâtes cuites", quantity: 250 },
+      { foodName: "Huile d'olive", quantity: 10 },
+      { foodName: "Légumes (mix)", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Pomme", quantity: 1 },
+    ],
+  },
+  {
+    slot: "LUNCH",
+    variantKey: "poulet-pates",
+    displayName: "Poulet & pâtes",
+    description: "Variation avec pâtes au lieu du riz, mêmes macros.",
+    items: [
+      { foodName: "Blanc de poulet cuit", quantity: 180 },
+      { foodName: "Pâtes cuites", quantity: 250 },
+      { foodName: "Huile d'olive", quantity: 10 },
+      { foodName: "Légumes (mix)", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Pomme", quantity: 1 },
+    ],
+  },
+
+  // ===== DÎNER =====
+  {
+    slot: "DINNER",
+    variantKey: "default",
+    displayName: "Steak haché & pdt",
+    description: "Le classique du soir, riche en fer.",
     items: [
       { foodName: "Steak haché 5%", quantity: 170 },
       { foodName: "Pommes de terre cuites", quantity: 300 },
@@ -100,23 +180,39 @@ const basePlan: { name: string; items: { foodName: string; quantity: number }[] 
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
     ],
   },
+  {
+    slot: "DINNER",
+    variantKey: "omelette-pates",
+    displayName: "Omelette & pâtes",
+    description: "Économique. 15 min, batch facile.",
+    items: [
+      { foodName: "Œuf entier", quantity: 3 },
+      { foodName: "Blancs d'œufs", quantity: 200 },
+      { foodName: "Pâtes cuites", quantity: 250 },
+      { foodName: "Huile d'olive", quantity: 10 },
+      { foodName: "Légumes (mix)", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+    ],
+  },
+  {
+    slot: "DINNER",
+    variantKey: "poulet-pdt",
+    displayName: "Poulet & pdt",
+    description: "Rotation viande. Pratique si tu as cuisiné du poulet le midi.",
+    items: [
+      { foodName: "Blanc de poulet cuit", quantity: 180 },
+      { foodName: "Pommes de terre cuites", quantity: 300 },
+      { foodName: "Huile d'olive", quantity: 10 },
+      { foodName: "Légumes (mix)", quantity: 200 },
+      { foodName: "Pain complet", quantity: 2 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+    ],
+  },
 ];
-
-function macrosFor(qty: number, food: typeof foods[number]) {
-  const g = food.unit === "piece" && food.unitGrams ? qty * food.unitGrams : qty;
-  const factor = g / 100;
-  return {
-    kcal: food.kcalPer100 * factor,
-    p: food.proteinPer100 * factor,
-    c: food.carbsPer100 * factor,
-    f: food.fatPer100 * factor,
-  };
-}
 
 async function main() {
   console.log("Seeding…");
 
-  // --- Exercices (upsert)
   for (const e of exercises) {
     await prisma.exercise.upsert({
       where: { name: e.name },
@@ -126,7 +222,6 @@ async function main() {
   }
   console.log(`  ✓ ${exercises.length} exercices`);
 
-  // --- Foods (upsert)
   for (const f of foods) {
     await prisma.food.upsert({
       where: { name: f.name },
@@ -136,20 +231,9 @@ async function main() {
   }
   console.log(`  ✓ ${foods.length} aliments`);
 
-  // --- Plan de base (recréé proprement)
-  const existingBase = await prisma.mealPlan.findFirst({ where: { isBase: true } });
-  if (existingBase) {
-    await prisma.mealPlan.delete({ where: { id: existingBase.id } });
-  }
-
-  let totK = 0, totP = 0, totC = 0, totF = 0;
-  for (const meal of basePlan) {
-    for (const it of meal.items) {
-      const food = foods.find((f) => f.name === it.foodName)!;
-      const m = macrosFor(it.quantity, food);
-      totK += m.kcal; totP += m.p; totC += m.c; totF += m.f;
-    }
-  }
+  // On wipe le plan de base précédent (cascades sur Meal + MealItem)
+  await prisma.mealPlan.deleteMany({ where: { isBase: true } });
+  await prisma.userMealPreference.deleteMany();
 
   const allFoods = await prisma.food.findMany();
   const foodIdByName = new Map(allFoods.map((f) => [f.name, f.id]));
@@ -158,16 +242,14 @@ async function main() {
     data: {
       label: "base",
       isBase: true,
-      totalKcal: Math.round(totK),
-      totalProtein: Math.round(totP),
-      totalCarbs: Math.round(totC),
-      totalFat: Math.round(totF),
       meals: {
-        create: basePlan.map((m, idx) => ({
-          name: m.name,
-          orderIndex: idx,
+        create: mealVariants.map((v) => ({
+          slot: v.slot,
+          variantKey: v.variantKey,
+          displayName: v.displayName,
+          description: v.description ?? null,
           items: {
-            create: m.items.map((it) => ({
+            create: v.items.map((it) => ({
               foodId: foodIdByName.get(it.foodName)!,
               quantity: it.quantity,
             })),
@@ -175,9 +257,21 @@ async function main() {
         })),
       },
     },
+    include: { meals: true },
   });
-  console.log(`  ✓ Plan de base #${plan.id} : ${Math.round(totK)} kcal | ${Math.round(totP)}P / ${Math.round(totC)}C / ${Math.round(totF)}F`);
 
+  // Préférences par défaut : variante "default" pour chaque slot
+  for (const slot of ["BREAKFAST", "LUNCH", "DINNER"] as const) {
+    const def = plan.meals.find((m) => m.slot === slot && m.variantKey === "default");
+    if (!def) throw new Error(`Variante "default" manquante pour slot ${slot}`);
+    await prisma.userMealPreference.upsert({
+      where: { slot },
+      create: { slot, mealId: def.id },
+      update: { mealId: def.id },
+    });
+  }
+
+  console.log(`  ✓ Plan #${plan.id} : ${plan.meals.length} variantes`);
   console.log("Seed terminé ✅");
 }
 

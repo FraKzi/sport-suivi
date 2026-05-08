@@ -22,7 +22,11 @@
       "Bash(python \"C:\\\\Users\\\\lucas\\\\Desktop\\\\sport-suivi\\\\scripts\\\\gen_icons.py\")",
       "Bash(git --version)",
       "Bash(grep -qE \"Compiled successfully|Failed to compile|Error:|^Error|errors$\" \"C:\\\\Users\\\\lucas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-lucas-Desktop-sport-suivi\\\\f819c747-2164-47e1-b889-91b04c60fd18\\\\tasks\\\\b1rv2rm3r.output\")",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(npm view *)",
+      "Bash(npm audit *)",
+      "Bash(npm i *)",
+      "Bash(npm ls *)"
     ]
   }
 }

@@ -24,6 +24,12 @@ enum ExerciseType {
   ISO
 }
 
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
 model UserProfile {
   id            Int      @id @default(autoincrement())
   age           Int
@@ -102,28 +108,30 @@ model Food {
   items        MealItem[]
 }
 
-// Plan de base — sert de référence pour le scaling
-// Un seul plan "base" + un plan "actif" généré automatiquement
+// Plan de base : conteneur des variantes de repas. Un seul plan isBase=true.
 model MealPlan {
   id           Int       @id @default(autoincrement())
-  label        String    // "base" ou "active"
-  goal         Goal?
-  totalKcal    Float
-  totalProtein Float
-  totalCarbs   Float
-  totalFat     Float
+  label        String
   isBase       Boolean   @default(false)
   generatedAt  DateTime  @default(now())
   meals        Meal[]
 }
 
+// Une variante de repas pour un slot donné (PETIT-DÉJ / DÉJ / DÎNER).
+// Plusieurs variantes par slot ; l'utilisateur en active une via UserMealPreference.
 model Meal {
-  id          Int        @id @default(autoincrement())
+  id          Int                 @id @default(autoincrement())
   planId      Int
-  name        String     // "Petit-déjeuner", "Déjeuner", "Dîner"
-  orderIndex  Int
-  plan        MealPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  slot        MealSlot
+  variantKey  String              // "default", "skyr-avoine", "thon-pates"...
+  displayName String
+  description String?
+  plan        MealPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
   items       MealItem[]
+  preferences UserMealPreference[]
+
+  @@unique([planId, slot, variantKey])
+  @@index([slot])
 }
 
 model MealItem {
@@ -135,4 +143,13 @@ model MealItem {
   food      Food   @relation(fields: [foodId], references: [id])
 
   @@index([mealId])
+}
+
+// Sélection courante de l'utilisateur pour chaque slot.
+// Une ligne max par slot (slot = clé primaire).
+model UserMealPreference {
+  slot      MealSlot @id
+  mealId    Int
+  updatedAt DateTime @updatedAt
+  meal      Meal     @relation(fields: [mealId], references: [id])
 }
