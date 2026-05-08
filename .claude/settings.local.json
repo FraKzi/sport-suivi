@@ -26,7 +26,9 @@
       "Bash(npm view *)",
       "Bash(npm audit *)",
       "Bash(npm i *)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(grep *)",
+      "Bash(git rm *)"
     ]
   }
 }

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "node -e \"require('fs').rmSync('node_modules/.prisma',{recursive:true,force:true})\" && prisma generate --no-hints && next build",
+    "postinstall": "prisma generate --no-hints",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
