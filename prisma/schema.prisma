@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Goal {
+  CUTTING
+  RECOMP
+  BULKING
+  MAINTENANCE
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ExerciseType {
+  POLY
+  ISO
+}
+
+model UserProfile {
+  id            Int      @id @default(autoincrement())
+  age           Int
+  sex           Sex      @default(MALE)
+  heightCm      Float
+  currentWeight Float
+  tdee          Int
+  goal          Goal     @default(RECOMP)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WeightLog {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @default(now())
+  weightKg  Float
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model Exercise {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  type          ExerciseType
+  dayNumber     Int           // 1, 2 ou 3
+  orderIndex    Int           // ordre dans la séance
+  prescription  String        // ex: "4×5-8"
+  description   String?
+  muscleGroups  String?
+  sets          WorkoutSet[]
+
+  @@index([dayNumber, orderIndex])
+}
+
+model WorkoutSession {
+  id          Int           @id @default(autoincrement())
+  date        DateTime      @default(now())
+  dayNumber   Int           // 1, 2, 3
+  durationMin Int?
+  notes       String?
+  bodyWeight  Float?
+  createdAt   DateTime      @default(now())
+  sets        WorkoutSet[]
+
+  @@index([date])
+}
+
+model WorkoutSet {
+  id          Int             @id @default(autoincrement())
+  sessionId   Int
+  exerciseId  Int
+  setNumber   Int
+  weightKg    Float?
+  reps        Int?
+  rpe         Float?
+  notes       String?
+  session     WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise    Exercise        @relation(fields: [exerciseId], references: [id])
+
+  @@index([sessionId])
+  @@index([exerciseId])
+}
+
+// Catalogue d'aliments avec macros par 100g (ou par unité pour les pièces)
+model Food {
+  id           Int        @id @default(autoincrement())
+  name         String     @unique
+  unit         String     // "g", "ml", "piece"
+  unitGrams    Float?     // si unit=piece, équivalent en g (ex: 1 banane=120g)
+  kcalPer100   Float
+  proteinPer100 Float
+  carbsPer100  Float
+  fatPer100    Float
+  items        MealItem[]
+}
+
+// Plan de base — sert de référence pour le scaling
+// Un seul plan "base" + un plan "actif" généré automatiquement
+model MealPlan {
+  id           Int       @id @default(autoincrement())
+  label        String    // "base" ou "active"
+  goal         Goal?
+  totalKcal    Float
+  totalProtein Float
+  totalCarbs   Float
+  totalFat     Float
+  isBase       Boolean   @default(false)
+  generatedAt  DateTime  @default(now())
+  meals        Meal[]
+}
+
+model Meal {
+  id          Int        @id @default(autoincrement())
+  planId      Int
+  name        String     // "Petit-déjeuner", "Déjeuner", "Dîner"
+  orderIndex  Int
+  plan        MealPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  items       MealItem[]
+}
+
+model MealItem {
+  id        Int    @id @default(autoincrement())
+  mealId    Int
+  foodId    Int
+  quantity  Float  // dans l'unité du Food (g, ml ou piece)
+  meal      Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food      Food   @relation(fields: [foodId], references: [id])
+
+  @@index([mealId])
+}

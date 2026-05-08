@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c 'import openpyxl; wb = openpyxl.load_workbook\\('\\\\''suivi_progression.xlsx'\\\\''\\); *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe *)",
+      "PowerShell($env:PGPASSWORD=\"admin\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -p 5433 -c \"SELECT version\\(\\);\")",
+      "PowerShell($env:PGPASSWORD=\"admin\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -p 5433 -tc \"SELECT 1 FROM pg_database WHERE datname='sport_suivi'\" | Select-String '1'; if \\(-not $?\\) { \"no\" })",
+      "PowerShell($env:PGPASSWORD=\"admin\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -p 5433 -c \"CREATE DATABASE sport_suivi;\")",
+      "PowerShell(npm *)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsx *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/\" -UseBasicParsing; \"Status: $\\($r.StatusCode\\)\"; \"Length: $\\($r.Content.Length\\)\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/api/profile\" -UseBasicParsing; $r.Content)",
+      "PowerShell($env:PGPASSWORD=\"admin\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -p 5433 -d sport_suivi -c \"DELETE FROM \"\"WorkoutSet\"\"; DELETE FROM \"\"WorkoutSession\"\"; DELETE FROM \"\"WeightLog\"\"; DELETE FROM \"\"UserProfile\"\";\")",
+      "PowerShell($env:PGPASSWORD=\"admin\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -p 5433 -d sport_suivi -f \"C:\\\\Users\\\\lucas\\\\Desktop\\\\sport-suivi\\\\prisma\\\\reset_test.sql\")",
+      "Bash(python \"C:\\\\Users\\\\lucas\\\\Desktop\\\\sport-suivi\\\\scripts\\\\gen_icons.py\")",
+      "Bash(git --version)",
+      "Bash(grep -qE \"Compiled successfully|Failed to compile|Error:|^Error|errors$\" \"C:\\\\Users\\\\lucas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-lucas-Desktop-sport-suivi\\\\f819c747-2164-47e1-b889-91b04c60fd18\\\\tasks\\\\b1rv2rm3r.output\")",
+      "PowerShell(Get-Process *)"
+    ]
+  }
+}
