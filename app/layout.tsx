@@ -34,19 +34,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body>
         <div className="min-h-screen flex flex-col">
-          <header className="border-b border-border bg-surface sticky top-0 z-10">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <header
+            className="border-b border-border bg-surface sticky top-0 z-20"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-center">
               <Link href="/" className="font-semibold text-lg whitespace-nowrap">
                 💪 Sport Suivi
               </Link>
-              <NavLinks />
             </div>
           </header>
-          <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">{children}</main>
-          <footer className="border-t border-border text-xs text-muted py-3 text-center">
-            Données chiffrées · Postgres Neon
-          </footer>
+          <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 pb-28">
+            {children}
+          </main>
         </div>
+        <NavLinks />
         <PWAClient />
       </body>
     </html>

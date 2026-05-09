@@ -466,7 +466,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
         })}
       </div>
 
-      <div className="flex items-center gap-3 sticky bottom-2 bg-bg/80 backdrop-blur p-3 -mx-3 rounded-lg border border-border">
+      <div className="flex items-center gap-3 sticky bottom-24 bg-bg/80 backdrop-blur p-3 -mx-3 rounded-lg border border-border">
         <Button onClick={save} disabled={saving}>
           {saving ? "Enregistrement…" : "Terminer la séance"}
         </Button>
@@ -479,7 +479,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
         const overtime = remaining === 0;
         const pct = overtime ? 0 : (remaining / rest.duration) * 100;
         return (
-          <div className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-96 bottom-24 z-40 animate-fadeIn">
+          <div className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-96 bottom-44 z-40 animate-fadeIn">
             <div
               className={`rounded-xl shadow-2xl border p-3 backdrop-blur ${
                 overtime

@@ -3,40 +3,45 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "/", label: "Tableau de bord", icon: "📊" },
-  { href: "/journal", label: "Journal", icon: "📔" },
+const PRIMARY_TABS = [
+  { href: "/", label: "Accueil", icon: "📊" },
   { href: "/seances", label: "Séances", icon: "🏋" },
+  { href: "/journal", label: "Journal", icon: "📔" },
+  { href: "/nutrition", label: "Nutrition", icon: "🍽️" },
+];
+
+const SECONDARY_LINKS = [
   { href: "/exercices", label: "Exercices", icon: "✏️" },
   { href: "/prs", label: "Records", icon: "🏆" },
   { href: "/trophees", label: "Trophées", icon: "🎖️" },
   { href: "/historique", label: "Historique", icon: "📅" },
-  { href: "/nutrition", label: "Nutrition", icon: "🍽️" },
   { href: "/courses", label: "Liste de courses", icon: "🛒" },
   { href: "/mesures", label: "Mesures", icon: "📏" },
   { href: "/profil", label: "Profil", icon: "👤" },
 ];
 
+function isActive(currentPath: string, linkHref: string): boolean {
+  if (linkHref === "/") return currentPath === "/";
+  return currentPath === linkHref || currentPath.startsWith(linkHref + "/");
+}
+
 export function NavLinks() {
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Évite hydration mismatch (drawer dépend du `path` côté client)
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Ferme automatiquement quand on change de page
   useEffect(() => {
-    setOpen(false);
+    setMoreOpen(false);
   }, [path]);
 
-  // Escape pour fermer + scroll lock du body
   useEffect(() => {
-    if (!open) return;
+    if (!moreOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") setMoreOpen(false);
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -44,63 +49,98 @@ export function NavLinks() {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [moreOpen]);
+
+  const inSecondary =
+    mounted && SECONDARY_LINKS.some((l) => isActive(path, l.href));
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="p-2 -mr-2 text-text hover:bg-surface2 rounded-md transition-colors"
-        aria-label="Ouvrir le menu"
-        aria-expanded={open}
+      {/* Bottom tab bar */}
+      <nav
+        aria-label="Navigation principale"
+        className="fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M3 6h18M3 12h18M3 18h18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+        <div className="max-w-md mx-auto grid grid-cols-5">
+          {PRIMARY_TABS.map((tab) => {
+            const active = mounted && isActive(path, tab.href);
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 transition-colors min-h-[56px] ${
+                  active ? "text-accent" : "text-muted hover:text-text"
+                }`}
+              >
+                <span className="text-xl leading-none" aria-hidden>
+                  {tab.icon}
+                </span>
+                <span className="text-[10px] leading-tight font-medium">
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 transition-colors min-h-[56px] ${
+              inSecondary ? "text-accent" : "text-muted hover:text-text"
+            }`}
+            aria-label="Plus d'options"
+            aria-expanded={moreOpen}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 6h18M3 12h18M3 18h18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="text-[10px] leading-tight font-medium">Plus</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Backdrop */}
       <div
-        onClick={() => setOpen(false)}
+        onClick={() => setMoreOpen(false)}
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
+          moreOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         aria-hidden="true"
       />
 
-      {/* Drawer slide-in droite */}
+      {/* Bottom sheet : liens secondaires */}
       <nav
-        aria-label="Navigation principale"
-        className={`fixed top-0 right-0 bottom-0 z-50 w-72 max-w-[85vw] bg-surface border-l border-border flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
+        aria-label="Plus d'options"
+        className={`fixed left-0 right-0 bottom-0 z-50 bg-surface border-t border-border rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto transform transition-transform duration-300 ease-out ${
+          moreOpen ? "translate-y-0" : "translate-y-full"
         }`}
-        style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
-          paddingTop: "env(safe-area-inset-top)",
-        }}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+        {/* Drag handle visuel */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border" />
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
           <span className="text-xs uppercase tracking-wider text-muted font-semibold">
-            Menu
+            Plus d'options
           </span>
           <button
             type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Fermer le menu"
-            className="text-muted hover:text-text p-1 -mr-1 rounded"
+            onClick={() => setMoreOpen(false)}
+            aria-label="Fermer"
+            className="text-muted hover:text-text p-1 -mr-1"
           >
             <svg
               width="22"
@@ -119,19 +159,15 @@ export function NavLinks() {
           </button>
         </div>
 
-        <ul className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {links.map((l) => {
-            const active =
-              mounted &&
-              (path === l.href || (l.href !== "/" && path.startsWith(l.href)));
+        <ul className="p-2 space-y-0.5">
+          {SECONDARY_LINKS.map((l) => {
+            const active = mounted && isActive(path, l.href);
             return (
               <li key={l.href}>
                 <Link
                   href={l.href}
                   className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                    active
-                      ? "bg-accent text-white"
-                      : "text-text hover:bg-surface2"
+                    active ? "bg-accent text-white" : "text-text hover:bg-surface2"
                   }`}
                 >
                   <span aria-hidden className="text-xl shrink-0 w-6 text-center">

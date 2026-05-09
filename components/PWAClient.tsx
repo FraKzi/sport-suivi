@@ -78,7 +78,7 @@ export function PWAClient() {
   }
 
   return (
-    <div className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-40 animate-fadeIn">
+    <div className="fixed bottom-24 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-40 animate-fadeIn">
       <div className="bg-surface border border-accent/40 rounded-xl p-4 shadow-2xl">
         <div className="flex items-start gap-3">
           <span className="text-2xl shrink-0" aria-hidden>
