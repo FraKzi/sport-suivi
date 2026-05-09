@@ -62,6 +62,8 @@ const foods: {
   // Nouveaux pour les variantes économiques
   { name: "Thon nature en boîte",  unit: "g",     kcalPer100: 116, proteinPer100: 26,  carbsPer100: 0,   fatPer100: 1 },
   { name: "Pâtes cuites",          unit: "g",     kcalPer100: 158, proteinPer100: 5.8, carbsPer100: 31,  fatPer100: 0.9 },
+  // Alternative protéinée maigre quand pas de blancs d'œufs
+  { name: "Jambon de poulet maigre", unit: "g",   kcalPer100: 110, proteinPer100: 22,  carbsPer100: 1,   fatPer100: 2 },
 ];
 
 // ---------- Variantes de repas ----------
@@ -78,8 +80,22 @@ const mealVariants: MealVariant[] = [
   {
     slot: "BREAKFAST",
     variantKey: "default",
-    displayName: "Œufs, avoine & skyr",
-    description: "Œufs entiers + skyr 0% pour remplacer les blancs d'œufs (rares en France). Mêmes macros, ~15 min.",
+    displayName: "Œufs & avoine",
+    description: "Le petit-déj de référence avec blancs d'œufs. À garder si tu en trouves (Decathlon, Picard, Auchan rayon sport).",
+    items: [
+      { foodName: "Flocons d'avoine", quantity: 100 },
+      { foodName: "Lait demi-écrémé", quantity: 300 },
+      { foodName: "Œuf entier", quantity: 3 },
+      { foodName: "Blancs d'œufs", quantity: 200 },
+      { foodName: "Banane", quantity: 1 },
+      { foodName: "Beurre de cacahuète", quantity: 15 },
+    ],
+  },
+  {
+    slot: "BREAKFAST",
+    variantKey: "oeufs-skyr",
+    displayName: "Œufs & avoine — skyr",
+    description: "Sans blancs d'œufs. Skyr 0% comme protéine maigre de remplacement (macros quasi identiques).",
     items: [
       { foodName: "Flocons d'avoine", quantity: 100 },
       { foodName: "Lait demi-écrémé", quantity: 300 },
@@ -91,9 +107,23 @@ const mealVariants: MealVariant[] = [
   },
   {
     slot: "BREAKFAST",
+    variantKey: "oeufs-jambon",
+    displayName: "Œufs & jambon de poulet",
+    description: "Sans blancs d'œufs. 100g de jambon de poulet maigre apporte ~22g de protéines pour 110 kcal — équivalent salé du blanc d'œuf.",
+    items: [
+      { foodName: "Flocons d'avoine", quantity: 100 },
+      { foodName: "Lait demi-écrémé", quantity: 300 },
+      { foodName: "Œuf entier", quantity: 3 },
+      { foodName: "Jambon de poulet maigre", quantity: 100 },
+      { foodName: "Banane", quantity: 1 },
+      { foodName: "Beurre de cacahuète", quantity: 15 },
+    ],
+  },
+  {
+    slot: "BREAKFAST",
     variantKey: "oeufs-entiers",
     displayName: "Tout-œufs & avoine",
-    description: "5 œufs entiers, sans skyr ni blancs. Plus riche en lipides — privilégier les jours sans dîner gras (préfère poulet-pdt ou poulet-pâtes au déjeuner).",
+    description: "Sans blancs d'œufs. 5 œufs entiers couvrent la protéine. Plus riche en lipides (~+12g) — éviter combo dîner gras.",
     items: [
       { foodName: "Flocons d'avoine", quantity: 100 },
       { foodName: "Lait demi-écrémé", quantity: 300 },
@@ -117,9 +147,23 @@ const mealVariants: MealVariant[] = [
   },
   {
     slot: "BREAKFAST",
-    variantKey: "toast-oeufs",
-    displayName: "Toast & œufs",
-    description: "2 œufs + skyr boosté pour compenser l'absence de blancs. Petit-déj salé, ~10 min.",
+    variantKey: "toast-oeuf",
+    displayName: "Toast & 1 œuf",
+    description: "Petit-déj salé original avec blancs. À garder si tu en trouves.",
+    items: [
+      { foodName: "Pain complet", quantity: 3 },
+      { foodName: "Œuf entier", quantity: 1 },
+      { foodName: "Blancs d'œufs", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Banane", quantity: 1 },
+      { foodName: "Beurre de cacahuète", quantity: 25 },
+    ],
+  },
+  {
+    slot: "BREAKFAST",
+    variantKey: "toast-skyr",
+    displayName: "Toast & œufs — skyr",
+    description: "Sans blancs : 2 œufs entiers + skyr boosté à 300g (compense les protéines des blancs).",
     items: [
       { foodName: "Pain complet", quantity: 3 },
       { foodName: "Œuf entier", quantity: 2 },
@@ -192,7 +236,21 @@ const mealVariants: MealVariant[] = [
     slot: "DINNER",
     variantKey: "omelette-pates",
     displayName: "Omelette & pâtes",
-    description: "Omelette 5 œufs + skyr boosté pour remplacer les blancs. 15 min, batch facile.",
+    description: "Omelette originale avec blancs d'œufs. À garder si tu en trouves. 15 min, batch facile.",
+    items: [
+      { foodName: "Œuf entier", quantity: 3 },
+      { foodName: "Blancs d'œufs", quantity: 200 },
+      { foodName: "Pâtes cuites", quantity: 250 },
+      { foodName: "Huile d'olive", quantity: 10 },
+      { foodName: "Légumes (mix)", quantity: 200 },
+      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+    ],
+  },
+  {
+    slot: "DINNER",
+    variantKey: "omelette-skyr",
+    displayName: "Omelette & pâtes — skyr",
+    description: "Sans blancs : 5 œufs entiers + skyr boosté à 200g. Plus de lipides (~+12g) mais protéines préservées.",
     items: [
       { foodName: "Œuf entier", quantity: 5 },
       { foodName: "Pâtes cuites", quantity: 250 },
