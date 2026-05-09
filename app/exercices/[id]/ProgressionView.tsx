@@ -16,6 +16,7 @@ import type { ExerciseType } from "@prisma/client";
 import { Card, CardTitle, Badge, Stat } from "@/components/ui";
 import {
   allTimeBests,
+  detectPlateau,
   progressionPerSession,
   progressVs30Days,
   tonnageWindow,
@@ -69,6 +70,7 @@ export function ProgressionView({ exo, sets, profile }: Props) {
   const bests = useMemo(() => allTimeBests(sets), [sets]);
   const tonnage30j = useMemo(() => tonnageWindow(sets, 30), [sets]);
   const e1rmDelta = useMemo(() => progressVs30Days(allSessions), [allSessions]);
+  const plateau = useMemo(() => detectPlateau(allSessions, 4), [allSessions]);
 
   const noData = sets.length === 0;
 
@@ -160,6 +162,48 @@ export function ProgressionView({ exo, sets, profile }: Props) {
               }
             />
           </div>
+
+          {/* Alerte plateau */}
+          {plateau && plateau.isPlateau && (
+            <Card className="!border-warning/40 !bg-warning/5">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0" aria-hidden>
+                  🚧
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-warning">
+                    Plateau détecté sur les {plateau.weeksWindow} dernières semaines
+                  </div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                    Top e1RM stagne à <strong className="text-text">{Math.round(plateau.recentMaxE1RM)} kg</strong>{" "}
+                    ({plateau.delta >= 0 ? "+" : ""}
+                    {plateau.delta.toFixed(1)} kg /{" "}
+                    {plateau.pctDelta >= 0 ? "+" : ""}
+                    {plateau.pctDelta.toFixed(1)}% vs il y a {plateau.weeksWindow}-
+                    {plateau.weeksWindow * 2} semaines).
+                  </p>
+                  <ul className="text-xs text-muted mt-2 space-y-1 list-disc list-inside">
+                    <li>
+                      <strong className="text-text">Deload</strong> : −10% charge, +1
+                      rep cible la semaine prochaine
+                    </li>
+                    <li>
+                      <strong className="text-text">Variation</strong> : change l'angle
+                      ou la prise (incliné, prono/supi, large/serré)
+                    </li>
+                    <li>
+                      <strong className="text-text">Volume</strong> : +1 série les 2
+                      prochaines semaines pour relancer le stimulus
+                    </li>
+                    <li>
+                      <strong className="text-text">Récupération</strong> : sommeil 7-9h
+                      et hydratation 35 ml/kg sont prioritaires
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Strength standards (Bench/Squat/DL/OHP uniquement, vs ratio poids de corps) */}
           {(() => {

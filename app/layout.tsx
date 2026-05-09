@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { NavLinks } from "@/components/NavLinks";
+import { PWAClient } from "@/components/PWAClient";
 
 export const metadata: Metadata = {
   title: "Sport Suivi",
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Données chiffrées · Postgres Neon
           </footer>
         </div>
+        <PWAClient />
       </body>
     </html>
   );

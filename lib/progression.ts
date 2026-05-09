@@ -122,3 +122,59 @@ export function progressVs30Days(sessions: SessionPerf[]): number | null {
   if (!before) return null;
   return latest.topE1RM - before.topE1RM;
 }
+
+// ============== DÉTECTION DE PLATEAU ==============
+
+export type PlateauDetection = {
+  weeksWindow: number;
+  recentMaxE1RM: number;
+  earlierMaxE1RM: number;
+  delta: number;
+  pctDelta: number;
+  isPlateau: boolean;
+  recentSessionsCount: number;
+};
+
+/**
+ * Compare le top e1RM de la fenêtre récente (N semaines) à celui de la fenêtre
+ * d'avant (N→2N semaines). Plateau si delta < 2 kg ET delta < 2%.
+ *
+ * Retourne null si pas assez de données pour comparer (besoin de 2 fenêtres
+ * non vides).
+ */
+export function detectPlateau(
+  sessions: SessionPerf[],
+  weeksWindow = 4,
+): PlateauDetection | null {
+  if (sessions.length < 3) return null;
+
+  const recentCutoff = Date.now() - weeksWindow * 7 * 86400_000;
+  const earlierCutoff = Date.now() - weeksWindow * 2 * 7 * 86400_000;
+
+  const recent = sessions.filter(
+    (s) => new Date(s.isoDate).getTime() >= recentCutoff,
+  );
+  const earlier = sessions.filter((s) => {
+    const t = new Date(s.isoDate).getTime();
+    return t >= earlierCutoff && t < recentCutoff;
+  });
+
+  if (recent.length === 0 || earlier.length === 0) return null;
+
+  const recentMax = Math.max(...recent.map((s) => s.topE1RM));
+  const earlierMax = Math.max(...earlier.map((s) => s.topE1RM));
+  const delta = recentMax - earlierMax;
+  const pctDelta = earlierMax > 0 ? (delta / earlierMax) * 100 : 0;
+
+  const isPlateau = delta < 2 && pctDelta < 2;
+
+  return {
+    weeksWindow,
+    recentMaxE1RM: recentMax,
+    earlierMaxE1RM: earlierMax,
+    delta,
+    pctDelta,
+    isPlateau,
+    recentSessionsCount: recent.length,
+  };
+}
