@@ -8,6 +8,7 @@ const links = [
   { href: "/seances", label: "Séances" },
   { href: "/exercices", label: "Exercices" },
   { href: "/prs", label: "🏆 PRs" },
+  { href: "/trophees", label: "🎖 Trophées" },
   { href: "/historique", label: "Historique" },
   { href: "/nutrition", label: "Nutrition" },
   { href: "/courses", label: "Courses" },
