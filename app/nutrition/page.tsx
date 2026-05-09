@@ -4,6 +4,7 @@ import { Card, CardTitle, Badge } from "@/components/ui";
 import { computeTargets, GOAL_LABEL, rescalePlan, macrosForMeal } from "@/lib/macros";
 import { WeightLogger } from "./WeightLogger";
 import { VariantSelector } from "./VariantSelector";
+import { MealConsumedToggle } from "./MealConsumedToggle";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,11 @@ function formatQty(quantity: number, unit: string) {
   return `${Math.round(quantity)} g`;
 }
 
+function todayUtcMidnight(): Date {
+  const d = new Date();
+  return new Date(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00.000Z`);
+}
+
 export default async function NutritionPage() {
   const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
   const basePlan = await prisma.mealPlan.findFirst({
@@ -31,6 +37,10 @@ export default async function NutritionPage() {
   });
   const prefs = await prisma.userMealPreference.findMany();
   const weights = await prisma.weightLog.findMany({ orderBy: { date: "desc" }, take: 20 });
+  const todayConsumed = await prisma.mealConsumption.findMany({
+    where: { date: todayUtcMidnight() },
+  });
+  const consumedBySlot = new Map(todayConsumed.map((c) => [c.slot, c.mealId]));
 
   if (!basePlan) {
     return <p className="text-sm">Plan de base manquant. Relance le seed.</p>;
@@ -91,6 +101,27 @@ export default async function NutritionPage() {
     actualTotals = res.totals;
   }
 
+  // Macros consommées (selon les repas marqués "mangé")
+  let cK = 0, cP = 0, cC = 0, cF = 0;
+  for (const consumption of todayConsumed) {
+    const dm = displayMeals.find((m) => m.slot === consumption.slot);
+    const active = activeMeals.find((m) => m.slot === consumption.slot);
+    if (dm && active && consumption.mealId === active.id) {
+      const mac = macrosForMeal(dm.items);
+      cK += mac.kcal; cP += mac.proteinG; cC += mac.carbsG; cF += mac.fatG;
+    } else {
+      const baseMeal = basePlan.meals.find((m) => m.id === consumption.mealId);
+      if (baseMeal) {
+        const mac = macrosForMeal(
+          baseMeal.items.map((it) => ({ foodId: it.foodId, quantity: it.quantity, food: it.food })),
+        );
+        cK += mac.kcal; cP += mac.proteinG; cC += mac.carbsG; cF += mac.fatG;
+      }
+    }
+  }
+  const consumedTotals = { kcal: cK, proteinG: cP, carbsG: cC, fatG: cF };
+  const consumedMealsCount = todayConsumed.length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
@@ -112,37 +143,44 @@ export default async function NutritionPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
-          <CardTitle>Cibles vs réalisé</CardTitle>
+          <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+            <CardTitle>Cibles · Plan · Mangé</CardTitle>
+            <Badge tone={consumedMealsCount === 3 ? "success" : "default"}>
+              {consumedMealsCount}/3 repas pris
+            </Badge>
+          </div>
           <table className="w-full text-sm">
             <thead className="text-xs text-muted">
               <tr>
                 <th className="text-left font-normal py-1"></th>
                 <th className="text-right font-normal py-1">Cible</th>
                 <th className="text-right font-normal py-1">Plan</th>
-                <th className="text-right font-normal py-1">Δ</th>
+                <th className="text-right font-normal py-1">Mangé</th>
               </tr>
             </thead>
             <tbody>
               {(
                 [
-                  ["Calories", targets.kcal, actualTotals.kcal, "kcal"],
-                  ["Protéines", targets.proteinG, actualTotals.proteinG, "g"],
-                  ["Glucides", targets.carbsG, actualTotals.carbsG, "g"],
-                  ["Lipides", targets.fatG, actualTotals.fatG, "g"],
+                  ["Calories", targets.kcal, actualTotals.kcal, consumedTotals.kcal, "kcal"],
+                  ["Protéines", targets.proteinG, actualTotals.proteinG, consumedTotals.proteinG, "g"],
+                  ["Glucides", targets.carbsG, actualTotals.carbsG, consumedTotals.carbsG, "g"],
+                  ["Lipides", targets.fatG, actualTotals.fatG, consumedTotals.fatG, "g"],
                 ] as const
-              ).map(([label, cible, plan, unit]) => {
-                const delta = plan - cible;
-                const pct = cible ? Math.round((delta / cible) * 100) : 0;
-                const color = Math.abs(pct) <= 5 ? "text-success" : Math.abs(pct) <= 10 ? "text-warning" : "text-danger";
+              ).map(([label, cible, plan, mange, unit]) => {
+                const pctEaten = cible ? (mange / cible) * 100 : 0;
+                const eatenColor =
+                  pctEaten >= 95 && pctEaten <= 110
+                    ? "text-success"
+                    : pctEaten >= 80
+                    ? "text-warning"
+                    : "text-muted";
                 return (
                   <tr key={label} className="border-t border-border">
                     <td className="py-1.5">{label}</td>
-                    <td className="text-right py-1.5">{cible} {unit}</td>
-                    <td className="text-right py-1.5">{plan} {unit}</td>
-                    <td className={`text-right py-1.5 ${color}`}>
-                      {delta > 0 ? "+" : ""}
-                      {delta} ({pct > 0 ? "+" : ""}
-                      {pct}%)
+                    <td className="text-right py-1.5 text-muted">{cible} {unit}</td>
+                    <td className="text-right py-1.5 text-muted">{plan} {unit}</td>
+                    <td className={`text-right py-1.5 font-medium ${eatenColor}`}>
+                      {mange} {unit}
                     </td>
                   </tr>
                 );
@@ -150,7 +188,7 @@ export default async function NutritionPage() {
             </tbody>
           </table>
           <p className="text-xs text-muted mt-2">
-            Les grammages sont arrondis (5g, 10ml, ½ pièce) ce qui peut faire varier les totaux de quelques %.
+            Coche « Mangé » sous chaque repas pour suivre ta consommation réelle.
           </p>
         </Card>
 
@@ -172,13 +210,21 @@ export default async function NutritionPage() {
           const active = activeMeals.find((m) => m.slot === slot)!;
           const variants = variantsBySlot[slot];
           const mac = macrosForMeal(meal.items);
+          const isConsumed = consumedBySlot.get(slot) === active.id;
           return (
-            <Card key={slot}>
+            <Card key={slot} className={isConsumed ? "!border-success/40" : ""}>
               <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
                 <CardTitle>{meal.name}</CardTitle>
-                <span className="text-xs text-muted">
-                  {mac.kcal} kcal · {mac.proteinG}P / {mac.carbsG}C / {mac.fatG}L
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted">
+                    {mac.kcal} kcal · {mac.proteinG}P / {mac.carbsG}C / {mac.fatG}L
+                  </span>
+                  <MealConsumedToggle
+                    slot={slot}
+                    mealId={active.id}
+                    consumed={isConsumed}
+                  />
+                </div>
               </div>
 
               <VariantSelector

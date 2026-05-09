@@ -36,6 +36,13 @@ export default async function DashboardPage() {
     orderBy: { date: "desc" },
   });
 
+  // Repas mangés aujourd'hui (UTC midnight)
+  const todayDate = new Date();
+  todayDate.setUTCHours(0, 0, 0, 0);
+  const todayConsumed = await prisma.mealConsumption.count({
+    where: { date: todayDate },
+  });
+
   const targets = profile
     ? computeTargets(profile.currentWeight, profile.tdee, profile.goal)
     : null;
@@ -200,9 +207,17 @@ export default async function DashboardPage() {
               : undefined
           }
         />
-        <Stat label="TDEE" value={profile.tdee} unit="kcal" />
         <Stat label="Objectif kcal" value={targets!.kcal} unit="kcal" />
-        <Stat label="Protéines cible" value={targets!.proteinG} unit="g" />
+        <Stat
+          label="Protéines cible"
+          value={targets!.proteinG}
+          unit="g"
+        />
+        <Stat
+          label="Repas pris"
+          value={`${todayConsumed}/3`}
+          hint={todayConsumed === 3 ? "Journée complète ✓" : "aujourd'hui"}
+        />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">

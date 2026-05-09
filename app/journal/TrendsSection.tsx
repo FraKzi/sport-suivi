@@ -132,11 +132,13 @@ export function TrendsSection({
         </div>
       </div>
 
-      {stats.daysWithAnyData === 0 ? (
+      {stats.daysWithAnyData < 3 ? (
         <Card>
           <p className="text-sm text-muted">
-            Aucune donnée enregistrée sur les {PERIOD_LABEL[period].toLowerCase()}. Commence par
-            saisir tes pas / hydratation au-dessus pour voir tes tendances.
+            {stats.daysWithAnyData === 0
+              ? "Aucune donnée enregistrée sur cette période."
+              : `Seulement ${stats.daysWithAnyData} jour${stats.daysWithAnyData > 1 ? "s" : ""} de données — il en faut au moins 3 pour des tendances fiables.`}{" "}
+            Continue à logger tes pas / hydratation / séances pendant quelques jours pour voir apparaître les courbes et alertes.
           </p>
         </Card>
       ) : (

@@ -134,18 +134,32 @@ model MealPlan {
 // Une variante de repas pour un slot donné (PETIT-DÉJ / DÉJ / DÎNER).
 // Plusieurs variantes par slot ; l'utilisateur en active une via UserMealPreference.
 model Meal {
-  id          Int                 @id @default(autoincrement())
-  planId      Int
-  slot        MealSlot
-  variantKey  String              // "default", "skyr-avoine", "thon-pates"...
-  displayName String
-  description String?
-  plan        MealPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
-  items       MealItem[]
-  preferences UserMealPreference[]
+  id           Int                 @id @default(autoincrement())
+  planId       Int
+  slot         MealSlot
+  variantKey   String              // "default", "skyr-avoine", "thon-pates"...
+  displayName  String
+  description  String?
+  plan         MealPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
+  items        MealItem[]
+  preferences  UserMealPreference[]
+  consumptions MealConsumption[]
 
   @@unique([planId, slot, variantKey])
   @@index([slot])
+}
+
+// Repas effectivement consommés (toggle "j'ai mangé") — 1 par slot par jour max.
+model MealConsumption {
+  id        Int      @id @default(autoincrement())
+  date      DateTime // UTC midnight du jour calendaire
+  slot      MealSlot
+  mealId    Int
+  meal      Meal     @relation(fields: [mealId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([date, slot])
+  @@index([date])
 }
 
 model MealItem {
