@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardTitle, Badge } from "@/components/ui";
 import { ProgressionChart } from "@/components/ProgressionChart";
 import { VolumeByMuscle } from "./VolumeByMuscle";
+import { CalendarHeatmap } from "./CalendarHeatmap";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,17 @@ export default async function HistoriquePage() {
     date: s.session.date.toISOString(),
     muscleGroups: s.exercise.muscleGroups,
   }));
+
+  // Sets des 365 derniers jours pour la heatmap calendaire
+  const yearAgo = new Date(Date.now() - 365 * 86400_000);
+  const yearSets = await prisma.workoutSet.findMany({
+    where: {
+      session: { date: { gte: yearAgo } },
+      OR: [{ weightKg: { not: null } }, { reps: { not: null } }],
+    },
+    include: { session: { select: { date: true } } },
+  });
+  const heatmapSets = yearSets.map((s) => ({ date: s.session.date.toISOString() }));
 
   // Données pour le graphe : meilleure série par exercice par séance (max charge × reps)
   // Inclut les archivés : leurs séries passées doivent rester visibles dans la progression historique
@@ -78,6 +90,8 @@ export default async function HistoriquePage() {
         </Card>
       ) : (
         <>
+          <CalendarHeatmap sets={heatmapSets} />
+
           <VolumeByMuscle sets={volumeSets} />
 
           <Card>
