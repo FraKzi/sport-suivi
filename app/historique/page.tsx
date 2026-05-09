@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardTitle, Badge } from "@/components/ui";
 import { ProgressionChart } from "@/components/ProgressionChart";
+import { VolumeByMuscle } from "./VolumeByMuscle";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,24 @@ export default async function HistoriquePage() {
     take: 50,
     include: { sets: { include: { exercise: true } } },
   });
+
+  // Sets des 14 derniers jours (rolling window) pour le volume par muscle
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000);
+  const recentSets = await prisma.workoutSet.findMany({
+    where: {
+      session: { date: { gte: fourteenDaysAgo } },
+      // Compte uniquement les séries effectivement renseignées (poids OU reps)
+      OR: [{ weightKg: { not: null } }, { reps: { not: null } }],
+    },
+    include: {
+      session: { select: { date: true } },
+      exercise: { select: { muscleGroups: true } },
+    },
+  });
+  const volumeSets = recentSets.map((s) => ({
+    date: s.session.date.toISOString(),
+    muscleGroups: s.exercise.muscleGroups,
+  }));
 
   // Données pour le graphe : meilleure série par exercice par séance (max charge × reps)
   // Inclut les archivés : leurs séries passées doivent rester visibles dans la progression historique
@@ -59,6 +78,8 @@ export default async function HistoriquePage() {
         </Card>
       ) : (
         <>
+          <VolumeByMuscle sets={volumeSets} />
+
           <Card>
             <CardTitle>Progression — top set par exercice</CardTitle>
             <ProgressionChart series={series} />
