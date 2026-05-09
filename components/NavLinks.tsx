@@ -7,6 +7,7 @@ const links = [
   { href: "/journal", label: "Journal" },
   { href: "/seances", label: "Séances" },
   { href: "/exercices", label: "Exercices" },
+  { href: "/prs", label: "🏆 PRs" },
   { href: "/historique", label: "Historique" },
   { href: "/nutrition", label: "Nutrition" },
   { href: "/courses", label: "Courses" },
