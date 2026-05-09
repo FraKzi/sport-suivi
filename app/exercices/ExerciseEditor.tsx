@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Exercise, ExerciseType } from "@prisma/client";
 import { Card, CardTitle, Field, Button, Badge } from "@/components/ui";
 
@@ -208,7 +209,11 @@ export function ExerciseEditor({ active, archived }: Props) {
                     className="bg-surface2 border border-border rounded-lg p-2.5 group"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/exercices/${exo.id}`}
+                        className="min-w-0 flex-1 hover:text-accent transition-colors"
+                        title="Voir la progression"
+                      >
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-medium leading-tight">
                             {exo.name}
@@ -221,7 +226,7 @@ export function ExerciseEditor({ active, archived }: Props) {
                           {exo.prescription}
                           {exo.muscleGroups ? ` · ${exo.muscleGroups}` : ""}
                         </div>
-                      </div>
+                      </Link>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button
                           type="button"
