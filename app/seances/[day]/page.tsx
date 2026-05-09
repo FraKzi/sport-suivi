@@ -10,7 +10,7 @@ export default async function DayPage({ params }: { params: { day: string } }) {
   if (!day || day < 1 || day > 3) notFound();
 
   const exos = await prisma.exercise.findMany({
-    where: { dayNumber: day },
+    where: { dayNumber: day, archived: false },
     orderBy: { orderIndex: "asc" },
   });
 

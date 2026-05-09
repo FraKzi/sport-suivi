@@ -6,6 +6,7 @@ const links = [
   { href: "/", label: "Tableau de bord" },
   { href: "/journal", label: "Journal" },
   { href: "/seances", label: "Séances" },
+  { href: "/exercices", label: "Exercices" },
   { href: "/historique", label: "Historique" },
   { href: "/nutrition", label: "Nutrition" },
   { href: "/courses", label: "Courses" },

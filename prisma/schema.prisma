@@ -75,9 +75,11 @@ model Exercise {
   prescription  String        // ex: "4×5-8"
   description   String?
   muscleGroups  String?
+  archived      Boolean       @default(false) // soft-delete : exclus du programme actif mais conservés pour l'historique
   sets          WorkoutSet[]
 
   @@index([dayNumber, orderIndex])
+  @@index([archived])
 }
 
 model WorkoutSession {

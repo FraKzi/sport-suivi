@@ -12,6 +12,7 @@ const DAY_LABELS: Record<number, { title: string; subtitle: string }> = {
 
 export default async function SeancesPage() {
   const exos = await prisma.exercise.findMany({
+    where: { archived: false },
     orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }],
   });
 

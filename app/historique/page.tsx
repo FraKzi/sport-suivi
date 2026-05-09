@@ -19,6 +19,7 @@ export default async function HistoriquePage() {
   });
 
   // Données pour le graphe : meilleure série par exercice par séance (max charge × reps)
+  // Inclut les archivés : leurs séries passées doivent rester visibles dans la progression historique
   const allExos = await prisma.exercise.findMany({ orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }] });
 
   const sessionsAsc = [...sessions].reverse();
