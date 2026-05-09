@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardTitle, Field, Button, Badge } from "@/components/ui";
+import { PlateCalculator } from "@/components/PlateCalculator";
 import type { Exercise } from "@prisma/client";
 import { isPR } from "@/lib/gamification";
 import {
@@ -289,12 +290,15 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
             </Badge>
           )}
         </div>
-        {lastDate && (
-          <span className="text-xs text-muted">
-            Dernière fois :{" "}
-            {lastDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <PlateCalculator />
+          {lastDate && (
+            <span className="text-xs text-muted">
+              Dernière fois :{" "}
+              {lastDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+            </span>
+          )}
+        </div>
       </div>
 
       <Card>

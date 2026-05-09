@@ -21,6 +21,7 @@ import {
   tonnageWindow,
   type RawSet,
 } from "@/lib/progression";
+import { assessStrength, percentTable } from "@/lib/lifting";
 
 const DAY_LABEL: Record<number, string> = { 1: "Pull", 2: "Legs", 3: "Push" };
 
@@ -35,7 +36,9 @@ type Exo = {
   archived: boolean;
 };
 
-type Props = { exo: Exo; sets: RawSet[] };
+type Profile = { sex: "MALE" | "FEMALE"; bodyWeightKg: number } | null;
+
+type Props = { exo: Exo; sets: RawSet[]; profile: Profile };
 
 type Period = 30 | 90 | 180 | 365 | 0; // 0 = all time
 
@@ -51,8 +54,9 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 }
 
-export function ProgressionView({ exo, sets }: Props) {
+export function ProgressionView({ exo, sets, profile }: Props) {
   const [period, setPeriod] = useState<Period>(180);
+  const [showPctTable, setShowPctTable] = useState(false);
 
   const filteredSets = useMemo(() => {
     if (period === 0) return sets;
@@ -156,6 +160,124 @@ export function ProgressionView({ exo, sets }: Props) {
               }
             />
           </div>
+
+          {/* Strength standards (Bench/Squat/DL/OHP uniquement, vs ratio poids de corps) */}
+          {(() => {
+            if (!bests.topE1RM || !profile) return null;
+            const assess = assessStrength({
+              exerciseName: exo.name,
+              e1RM: bests.topE1RM.value,
+              bodyWeightKg: profile.bodyWeightKg,
+              sex: profile.sex,
+            });
+            if (!assess) return null;
+            const colors: Record<string, string> = {
+              "Pré-débutant": "bg-muted text-bg",
+              Débutant: "bg-danger text-white",
+              Novice: "bg-warning text-bg",
+              Intermédiaire: "bg-accent text-white",
+              Avancé: "bg-success text-white",
+              Élite: "bg-warning text-bg",
+            };
+            return (
+              <Card>
+                <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+                  <CardTitle>
+                    Niveau de force · {assess.exerciseLabel}
+                  </CardTitle>
+                  <Badge>
+                    Ratio {assess.ratio.toFixed(2)}× PdC
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className={`px-3 py-1.5 rounded-full text-sm font-semibold ${colors[assess.level] ?? "bg-surface2"}`}
+                  >
+                    {assess.level}
+                  </div>
+                  {assess.nextLevel && (
+                    <div className="text-xs text-muted">
+                      Prochain palier : <strong className="text-text">{assess.nextLevel.label}</strong>{" "}
+                      à {assess.nextLevel.weight} kg
+                      {assess.nextLevel.delta > 0 && (
+                        <span className="text-warning"> (+{assess.nextLevel.delta.toFixed(1)} kg)</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {assess.thresholds.map((t) => {
+                    const reached = bests.topE1RM!.value >= t.weight;
+                    const isCurrentLevel = t.label === assess.level;
+                    return (
+                      <div
+                        key={t.label}
+                        className={`grid grid-cols-[1fr_auto_auto] gap-3 items-center text-sm py-1 px-2 rounded ${
+                          isCurrentLevel ? "bg-accent/10 ring-1 ring-accent/30" : ""
+                        }`}
+                      >
+                        <span
+                          className={
+                            reached
+                              ? "text-text"
+                              : "text-muted"
+                          }
+                        >
+                          {reached ? "✓" : "○"} {t.label}
+                        </span>
+                        <span className="text-xs text-muted">×{t.ratio}</span>
+                        <span className="tabular-nums text-sm">{t.weight} kg</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted mt-3">
+                  Standards Symmetric Strength / Stronger By Science basés sur le ratio
+                  e1RM / poids de corps ({profile.bodyWeightKg} kg).
+                </p>
+              </Card>
+            );
+          })()}
+
+          {/* Table %1RM (toggleable) */}
+          {bests.topE1RM && (
+            <Card>
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <CardTitle>Charges de travail (% de l'e1RM)</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => setShowPctTable((v) => !v)}
+                  className="text-xs text-accent hover:underline"
+                >
+                  {showPctTable ? "Masquer" : "Afficher"}
+                </button>
+              </div>
+              {showPctTable && (
+                <table className="w-full text-sm mt-3">
+                  <thead className="text-xs text-muted">
+                    <tr className="border-b border-border">
+                      <th className="text-left font-normal py-1.5">% 1RM</th>
+                      <th className="text-right font-normal py-1.5">Charge</th>
+                      <th className="text-right font-normal py-1.5">Reps</th>
+                      <th className="text-right font-normal py-1.5">Objectif</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {percentTable(bests.topE1RM.value).map((r) => (
+                      <tr key={r.pct} className="border-b border-border last:border-0">
+                        <td className="py-1.5">{r.pct}%</td>
+                        <td className="text-right py-1.5 tabular-nums font-medium">
+                          {r.weight} kg
+                        </td>
+                        <td className="text-right py-1.5 text-muted">{r.repsRange}</td>
+                        <td className="text-right py-1.5 text-muted">{r.goal}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+          )}
 
           {/* Sélecteur de période */}
           <div className="flex items-center justify-between flex-wrap gap-2">

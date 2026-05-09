@@ -26,6 +26,9 @@ export default async function ExerciseDetailPage({
     orderBy: { id: "asc" },
   });
 
+  // Profil pour les standards de force (ratio e1RM / poids de corps)
+  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+
   return (
     <ProgressionView
       exo={{
@@ -45,6 +48,11 @@ export default async function ExerciseDetailPage({
         date: s.session.date.toISOString(),
         setNumber: s.setNumber,
       }))}
+      profile={
+        profile
+          ? { sex: profile.sex, bodyWeightKg: profile.currentWeight }
+          : null
+      }
     />
   );
 }
