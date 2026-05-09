@@ -29,9 +29,9 @@ type SetRow = {
 };
 
 const DAY_TITLES: Record<number, string> = {
-  1: "Jour 1 — Upper",
-  2: "Jour 2 — Lower",
-  3: "Jour 3 — Full Body",
+  1: "Pull — Dos / Biceps",
+  2: "Legs — Jambes",
+  3: "Push — Pecs / Épaules / Triceps",
 };
 
 function parseSetCount(prescription: string): number {

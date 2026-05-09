@@ -6,9 +6,9 @@ import { ProgressionChart } from "@/components/ProgressionChart";
 export const dynamic = "force-dynamic";
 
 const DAY_TITLE: Record<number, string> = {
-  1: "Upper",
-  2: "Lower",
-  3: "Full Body",
+  1: "Pull",
+  2: "Legs",
+  3: "Push",
 };
 
 export default async function HistoriquePage() {

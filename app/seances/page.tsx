@@ -5,9 +5,9 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const DAY_LABELS: Record<number, { title: string; subtitle: string }> = {
-  1: { title: "Jour 1 — Upper", subtitle: "Pecs · Dos · Épaules · Biceps · Triceps" },
-  2: { title: "Jour 2 — Lower", subtitle: "Quadriceps · Ischios · Fessiers · Mollets" },
-  3: { title: "Jour 3 — Full Body", subtitle: "Toute la chaîne · Pecs haut · Dos · Triceps" },
+  1: { title: "Pull", subtitle: "Dos · Biceps · Épaules postérieures" },
+  2: { title: "Legs", subtitle: "Quadriceps · Ischios · Fessiers" },
+  3: { title: "Push", subtitle: "Pecs · Épaules · Triceps" },
 };
 
 export default async function SeancesPage() {
@@ -61,13 +61,41 @@ export default async function SeancesPage() {
       </div>
 
       <Card>
-        <CardTitle>Principes clés</CardTitle>
-        <ul className="text-sm text-muted space-y-1 list-disc list-inside">
-          <li>Surcharge progressive : monter le poids dès que toutes les séries sont bouclées en haut de la fourchette.</li>
-          <li>Tempo : 2-3 sec négatif, explosif positif.</li>
-          <li>Repos : 2-3 min sur poly, 60-90 sec sur iso.</li>
-          <li>Fréquence : J1 / J2 / repos / J3 — ou J1 / repos / J2 / repos / J3.</li>
-        </ul>
+        <CardTitle>Surcharge progressive — quand & comment</CardTitle>
+
+        <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="font-medium text-text mb-1">📈 QUAND monter la charge</div>
+            <ul className="text-muted space-y-1 list-disc list-inside">
+              <li>Tu boucles <strong>toutes les séries</strong> au <strong>haut de la fourchette</strong> de reps prescrite (ex : 4×8-12 → tu fais 12, 12, 12, 12).</li>
+              <li>La dernière rep reste avec ~2 reps en réserve (RPE ≤ 8).</li>
+              <li>La technique reste propre (pas de triche, tempo respecté).</li>
+            </ul>
+            <p className="text-xs text-muted mt-2 italic">
+              Si tu rates une condition → tu gardes la charge la séance suivante et tu ajoutes 1 rep.
+            </p>
+          </div>
+
+          <div>
+            <div className="font-medium text-text mb-1">⚙️ COMMENT incrémenter</div>
+            <ul className="text-muted space-y-1 list-disc list-inside">
+              <li><strong>Polyarticulaires lourds</strong> (Squat, Bench, RDL, Pendlay) : <strong>+2.5&nbsp;kg</strong> total (1.25 par côté).</li>
+              <li><strong>Isolations</strong> (curls, lateral raise, tricep ext, fly) : <strong>+1&nbsp;à&nbsp;2&nbsp;kg</strong>, ou +1 rep si pas de plus petit incrément.</li>
+              <li>Après augmentation, tu retombes en <strong>bas de la fourchette</strong> de reps. Tu remontes séance après séance.</li>
+              <li>Stagnation 2 séances de suite → <strong>deload -10%</strong> charge sur l'exo, puis tu remontes.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="font-medium text-text mb-1 text-sm">🗓 Cadence & repos</div>
+          <ul className="text-sm text-muted space-y-1 list-disc list-inside">
+            <li>Rotation Pull → Legs → Push, avec 1 jour de repos entre deux jours lourds (ex : Pu / Le / repos / Pu / Push / Le / repos).</li>
+            <li>Repos entre séries : <strong>2-3 min</strong> sur les polyarticulaires, <strong>60-90 sec</strong> sur les isolations.</li>
+            <li>Tempo : <strong>2-3 sec en négatif</strong>, contraction explosive en positif.</li>
+            <li>Note systématiquement la RPE pour identifier quand tu peux réellement charger plus.</li>
+          </ul>
+        </div>
       </Card>
     </div>
   );

@@ -2,7 +2,8 @@ import { PrismaClient, MealSlot } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// ---------- Exercices (extraits du programme) ----------
+// ---------- Exercices (programme Push / Pull / Legs) ----------
+// Day 1 = Pull, Day 2 = Legs, Day 3 = Push
 const exercises: {
   name: string;
   type: "POLY" | "ISO";
@@ -12,30 +13,25 @@ const exercises: {
   description?: string;
   muscleGroups?: string;
 }[] = [
-  // JOUR 1 — Upper
-  { name: "Développé couché barre", type: "POLY", dayNumber: 1, orderIndex: 1, prescription: "4×5-8", description: "Base de masse pectorale, charge maximale", muscleGroups: "Pecs · Triceps" },
-  { name: "Tractions pronation lestées", type: "POLY", dayNumber: 1, orderIndex: 2, prescription: "4×5-8", description: "Meilleur exo dos en amplitude complète", muscleGroups: "Dos · Biceps" },
-  { name: "Développé militaire haltères", type: "POLY", dayNumber: 1, orderIndex: 3, prescription: "3×8-10", description: "Masse épaules + stabilisation", muscleGroups: "Épaules · Triceps" },
-  { name: "Rowing barre", type: "POLY", dayNumber: 1, orderIndex: 4, prescription: "3×8-10", description: "Épaisseur du dos, recrutement total", muscleGroups: "Dos" },
-  { name: "Élévations latérales câble", type: "ISO", dayNumber: 1, orderIndex: 5, prescription: "4×15-20", description: "Cible le deltoïde latéral, incontournable", muscleGroups: "Épaules" },
-  { name: "Curl haltères incliné", type: "ISO", dayNumber: 1, orderIndex: 6, prescription: "3×10-12", description: "Étirement maximal du biceps", muscleGroups: "Biceps" },
+  // JOUR 1 — PULL
+  { name: "Lat Pulldown", type: "POLY", dayNumber: 1, orderIndex: 1, prescription: "4×8-12", description: "Vidéo 1:23 — tirage vertical, dos large", muscleGroups: "Dos · Biceps" },
+  { name: "Chest Supported Row", type: "POLY", dayNumber: 1, orderIndex: 2, prescription: "4×8-12", description: "Vidéo 5:30 — rowing avec appui pectoral, isole le dos sans triche lombaire", muscleGroups: "Dos · Biceps" },
+  { name: "Cross Body Lat Pull-around", type: "ISO", dayNumber: 1, orderIndex: 3, prescription: "3×12-15", description: "Vidéo 7:00 — câble unilatéral, étirement maximal du grand dorsal", muscleGroups: "Dos (lats)" },
+  { name: "Pendlay Row", type: "POLY", dayNumber: 1, orderIndex: 4, prescription: "3×6-8", description: "Vidéo 7:26 — barre au sol entre chaque rep, renforce explicitement les lats", muscleGroups: "Dos · Biceps" },
+  { name: "Reverse Cable Fly", type: "ISO", dayNumber: 1, orderIndex: 5, prescription: "3×15-20", description: "Vidéo 8:45 — pense à \"sweep\" (cf 9:02). Cible deltoïdes postérieurs", muscleGroups: "Épaules post." },
+  { name: "Cable Bicep Curl", type: "ISO", dayNumber: 1, orderIndex: 6, prescription: "3×10-15", description: "Vidéo 10:44 — tension constante câble", muscleGroups: "Biceps" },
 
-  // JOUR 2 — Lower
-  { name: "Squat barre", type: "POLY", dayNumber: 2, orderIndex: 1, prescription: "4×6-10", description: "Roi des quadriceps, pic anabolisant", muscleGroups: "Quadriceps · Fessiers" },
-  { name: "Romanian Deadlift", type: "POLY", dayNumber: 2, orderIndex: 2, prescription: "4×8-10", description: "Étirement + tension ischio = stimulus optimal", muscleGroups: "Ischios · Fessiers" },
-  { name: "Fentes bulgares haltères", type: "POLY", dayNumber: 2, orderIndex: 3, prescription: "3×8-10 / jambe", description: "Unilatéral = correction déséquilibres", muscleGroups: "Quadriceps · Fessiers" },
-  { name: "Hip Thrust barre", type: "POLY", dayNumber: 2, orderIndex: 4, prescription: "3×10-12", description: "Meilleur recrutement fessier possible", muscleGroups: "Fessiers" },
-  { name: "Leg curl couché", type: "ISO", dayNumber: 2, orderIndex: 5, prescription: "3×12-15", description: "Isole les ischios en étirement long", muscleGroups: "Ischios" },
-  { name: "Mollets debout", type: "ISO", dayNumber: 2, orderIndex: 6, prescription: "4×15-20", description: "Amplitude complète, indispensable", muscleGroups: "Mollets" },
+  // JOUR 2 — LEGS
+  { name: "Barbell Back Squat", type: "POLY", dayNumber: 2, orderIndex: 1, prescription: "4×6-10", description: "Vidéo 13:40 — squat barre dos, roi des quadriceps", muscleGroups: "Quadriceps · Fessiers" },
+  { name: "Romanian Deadlift", type: "POLY", dayNumber: 2, orderIndex: 2, prescription: "4×8-12", description: "Vidéo 15:05 — barre libre ou Smith machine, focus ischios étirés", muscleGroups: "Ischios · Fessiers" },
+  { name: "Quad Extension (Prime Curl)", type: "ISO", dayNumber: 2, orderIndex: 3, prescription: "3×10-15", description: "Vidéo 19:40 — leg extension, isolation pure quadriceps", muscleGroups: "Quadriceps" },
+  { name: "Hamstring Curl", type: "ISO", dayNumber: 2, orderIndex: 4, prescription: "3×10-15", description: "Vidéo 22:19 — leg curl couché ou assis", muscleGroups: "Ischios" },
 
-  // JOUR 3 — Full Body
-  { name: "Soulevé de terre conventionnel", type: "POLY", dayNumber: 3, orderIndex: 1, prescription: "4×4-6", description: "Toute la chaîne postérieure", muscleGroups: "Dos · Ischios · Fessiers" },
-  { name: "Développé incliné haltères", type: "POLY", dayNumber: 3, orderIndex: 2, prescription: "3×8-12", description: "Haut des pecs, sous-sollicité par le plat", muscleGroups: "Pecs haut · Épaules" },
-  { name: "Tractions supination lestées", type: "POLY", dayNumber: 3, orderIndex: 3, prescription: "3×6-10", description: "Biceps + dos sollicités simultanément", muscleGroups: "Dos · Biceps" },
-  { name: "Dips lestés", type: "POLY", dayNumber: 3, orderIndex: 4, prescription: "3×8-10", description: "Bas des pecs + triceps lourds", muscleGroups: "Pecs · Triceps" },
-  { name: "Face pull câble", type: "ISO", dayNumber: 3, orderIndex: 5, prescription: "3×15-20", description: "Deltoïde postérieur + santé épaule", muscleGroups: "Épaules post." },
-  { name: "Écarté haltères / Pec deck", type: "ISO", dayNumber: 3, orderIndex: 6, prescription: "3×12-15", description: "Étirement pec en tension = hypertrophie", muscleGroups: "Pecs" },
-  { name: "Gainage lesté", type: "POLY", dayNumber: 3, orderIndex: 7, prescription: "3 séries", description: "Sangle abdominale = socle de tous les exos", muscleGroups: "Abdos" },
+  // JOUR 3 — PUSH
+  { name: "Bench Press", type: "POLY", dayNumber: 3, orderIndex: 1, prescription: "4×6-10", description: "Vidéo 26:03 — développé couché barre, base pectorale", muscleGroups: "Pecs · Triceps · Épaules ant." },
+  { name: "Cable Fly", type: "ISO", dayNumber: 3, orderIndex: 2, prescription: "3×12-15", description: "Vidéo 27:53 — étirement pectoral en tension", muscleGroups: "Pecs" },
+  { name: "Modified Lateral Raise", type: "ISO", dayNumber: 3, orderIndex: 3, prescription: "4×12-20", description: "Vidéo 30:45 — version corrigée des élévations latérales", muscleGroups: "Épaules (deltoïde latéral)" },
+  { name: "Tricep Extension", type: "ISO", dayNumber: 3, orderIndex: 4, prescription: "3×10-15", description: "Vidéo 31:35 — extension triceps câble ou haltère", muscleGroups: "Triceps" },
 ];
 
 // ---------- Catalogue d'aliments (macros par 100g, sauf piece) ----------
@@ -212,6 +208,29 @@ const mealVariants: MealVariant[] = [
 
 async function main() {
   console.log("Seeding…");
+
+  // Migration : supprimer les Exercises absents du nouveau seed (et les sessions
+  // qui les référencent). Idempotent : sans changement de programme, no-op.
+  const currentNames = exercises.map((e) => e.name);
+  const orphans = await prisma.exercise.findMany({
+    where: { name: { notIn: currentNames } },
+    select: { id: true, name: true },
+  });
+  if (orphans.length > 0) {
+    const orphanIds = orphans.map((o) => o.id);
+    const affectedSessions = await prisma.workoutSession.findMany({
+      where: { sets: { some: { exerciseId: { in: orphanIds } } } },
+      select: { id: true },
+    });
+    if (affectedSessions.length > 0) {
+      await prisma.workoutSession.deleteMany({
+        where: { id: { in: affectedSessions.map((s) => s.id) } },
+      });
+      console.log(`  ⚠ ${affectedSessions.length} session(s) supprimée(s) (programme remplacé)`);
+    }
+    await prisma.exercise.deleteMany({ where: { id: { in: orphanIds } } });
+    console.log(`  ⚠ ${orphans.length} exercice(s) obsolète(s) supprimé(s) : ${orphans.map((o) => o.name).join(", ")}`);
+  }
 
   for (const e of exercises) {
     await prisma.exercise.upsert({
