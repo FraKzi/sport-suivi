@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { SessionLogger } from "./SessionLogger";
+import { computeBestVolumes } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,13 @@ export default async function DayPage({ params }: { params: { day: string } }) {
 
   const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
 
+  // Records historiques par exercice : volume max (kg × reps) toutes séances confondues
+  const allSets = await prisma.workoutSet.findMany({
+    where: { exerciseId: { in: exos.map((e) => e.id) } },
+    select: { exerciseId: true, weightKg: true, reps: true },
+  });
+  const bestVolumes = computeBestVolumes(allSets);
+
   return (
     <SessionLogger
       day={day}
@@ -40,6 +48,7 @@ export default async function DayPage({ params }: { params: { day: string } }) {
           : null
       }
       defaultBodyWeight={profile?.currentWeight ?? null}
+      bestVolumes={bestVolumes}
     />
   );
 }

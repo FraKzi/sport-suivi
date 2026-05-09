@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Tableau de bord" },
+  { href: "/journal", label: "Journal" },
   { href: "/seances", label: "Séances" },
   { href: "/historique", label: "Historique" },
   { href: "/nutrition", label: "Nutrition" },
+  { href: "/courses", label: "Courses" },
   { href: "/profil", label: "Profil" },
 ];
 

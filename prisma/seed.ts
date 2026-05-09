@@ -13,25 +13,95 @@ const exercises: {
   description?: string;
   muscleGroups?: string;
 }[] = [
-  // JOUR 1 — PULL
-  { name: "Lat Pulldown", type: "POLY", dayNumber: 1, orderIndex: 1, prescription: "4×8-12", description: "Vidéo 1:23 — tirage vertical, dos large", muscleGroups: "Dos · Biceps" },
-  { name: "Chest Supported Row", type: "POLY", dayNumber: 1, orderIndex: 2, prescription: "4×8-12", description: "Vidéo 5:30 — rowing avec appui pectoral, isole le dos sans triche lombaire", muscleGroups: "Dos · Biceps" },
-  { name: "Cross Body Lat Pull-around", type: "ISO", dayNumber: 1, orderIndex: 3, prescription: "3×12-15", description: "Vidéo 7:00 — câble unilatéral, étirement maximal du grand dorsal", muscleGroups: "Dos (lats)" },
-  { name: "Pendlay Row", type: "POLY", dayNumber: 1, orderIndex: 4, prescription: "3×6-8", description: "Vidéo 7:26 — barre au sol entre chaque rep, renforce explicitement les lats", muscleGroups: "Dos · Biceps" },
-  { name: "Reverse Cable Fly", type: "ISO", dayNumber: 1, orderIndex: 5, prescription: "3×15-20", description: "Vidéo 8:45 — pense à \"sweep\" (cf 9:02). Cible deltoïdes postérieurs", muscleGroups: "Épaules post." },
-  { name: "Cable Bicep Curl", type: "ISO", dayNumber: 1, orderIndex: 6, prescription: "3×10-15", description: "Vidéo 10:44 — tension constante câble", muscleGroups: "Biceps" },
+  // ========== JOUR 1 — PULL ==========
+  {
+    name: "Tirage vertical poulie",
+    type: "POLY", dayNumber: 1, orderIndex: 1, prescription: "4×8-12",
+    description: "Vidéo 1:23 — tirage à la poulie haute, prise large. Construit la largeur du dos.",
+    muscleGroups: "Dos · Biceps",
+  },
+  {
+    name: "Tirage horizontal buste appuyé",
+    type: "POLY", dayNumber: 1, orderIndex: 2, prescription: "4×8-12",
+    description: "Vidéo 5:30 — rowing avec appui pectoral. Isole le dos sans triche lombaire.",
+    muscleGroups: "Dos · Biceps",
+  },
+  {
+    name: "Tirage croisé unilatéral",
+    type: "ISO", dayNumber: 1, orderIndex: 3, prescription: "3×12-15",
+    description: "Vidéo 7:00 — Cross body lat pull-around. Câble unilatéral, étirement maximal du grand dorsal.",
+    muscleGroups: "Dos (lats)",
+  },
+  {
+    name: "Rowing Pendlay",
+    type: "POLY", dayNumber: 1, orderIndex: 4, prescription: "3×6-8",
+    description: "Vidéo 7:26 — barre au sol entre chaque rep. Renforce explicitement les lats avec gros stimulus neural.",
+    muscleGroups: "Dos · Biceps",
+  },
+  {
+    name: "Écarté inversé poulie",
+    type: "ISO", dayNumber: 1, orderIndex: 5, prescription: "3×15-20",
+    description: "Vidéo 8:45 — pense à \"sweep\" (cf 9:02). Cible deltoïdes postérieurs, santé scapulaire.",
+    muscleGroups: "Épaules post.",
+  },
+  {
+    name: "Curl biceps poulie",
+    type: "ISO", dayNumber: 1, orderIndex: 6, prescription: "3×10-15",
+    description: "Vidéo 10:44 — tension constante grâce au câble.",
+    muscleGroups: "Biceps",
+  },
 
-  // JOUR 2 — LEGS
-  { name: "Barbell Back Squat", type: "POLY", dayNumber: 2, orderIndex: 1, prescription: "4×6-10", description: "Vidéo 13:40 — squat barre dos, roi des quadriceps", muscleGroups: "Quadriceps · Fessiers" },
-  { name: "Romanian Deadlift", type: "POLY", dayNumber: 2, orderIndex: 2, prescription: "4×8-12", description: "Vidéo 15:05 — barre libre ou Smith machine, focus ischios étirés", muscleGroups: "Ischios · Fessiers" },
-  { name: "Quad Extension (Prime Curl)", type: "ISO", dayNumber: 2, orderIndex: 3, prescription: "3×10-15", description: "Vidéo 19:40 — leg extension, isolation pure quadriceps", muscleGroups: "Quadriceps" },
-  { name: "Hamstring Curl", type: "ISO", dayNumber: 2, orderIndex: 4, prescription: "3×10-15", description: "Vidéo 22:19 — leg curl couché ou assis", muscleGroups: "Ischios" },
+  // ========== JOUR 2 — LEGS ==========
+  {
+    name: "Squat barre",
+    type: "POLY", dayNumber: 2, orderIndex: 1, prescription: "4×6-10",
+    description: "Vidéo 13:40 — Barbell back squat, roi des quadriceps. Descends jusqu'à parallèle minimum.",
+    muscleGroups: "Quadriceps · Fessiers",
+  },
+  {
+    name: "Soulevé de terre roumain",
+    type: "POLY", dayNumber: 2, orderIndex: 2, prescription: "4×8-12",
+    description: "Vidéo 15:05 — RDL barre libre ou Smith machine. Focus ischios étirés, charnière de hanche.",
+    muscleGroups: "Ischios · Fessiers",
+  },
+  {
+    name: "Leg extension",
+    type: "ISO", dayNumber: 2, orderIndex: 3, prescription: "3×10-15",
+    description: "Vidéo 19:40 — Quad extension (Prime Curl). Isolation pure quadriceps.",
+    muscleGroups: "Quadriceps",
+  },
+  {
+    name: "Leg curl",
+    type: "ISO", dayNumber: 2, orderIndex: 4, prescription: "3×10-15",
+    description: "Vidéo 22:19 — couché ou assis selon machine. Pic de tension en flexion complète.",
+    muscleGroups: "Ischios",
+  },
 
-  // JOUR 3 — PUSH
-  { name: "Bench Press", type: "POLY", dayNumber: 3, orderIndex: 1, prescription: "4×6-10", description: "Vidéo 26:03 — développé couché barre, base pectorale", muscleGroups: "Pecs · Triceps · Épaules ant." },
-  { name: "Cable Fly", type: "ISO", dayNumber: 3, orderIndex: 2, prescription: "3×12-15", description: "Vidéo 27:53 — étirement pectoral en tension", muscleGroups: "Pecs" },
-  { name: "Modified Lateral Raise", type: "ISO", dayNumber: 3, orderIndex: 3, prescription: "4×12-20", description: "Vidéo 30:45 — version corrigée des élévations latérales", muscleGroups: "Épaules (deltoïde latéral)" },
-  { name: "Tricep Extension", type: "ISO", dayNumber: 3, orderIndex: 4, prescription: "3×10-15", description: "Vidéo 31:35 — extension triceps câble ou haltère", muscleGroups: "Triceps" },
+  // ========== JOUR 3 — PUSH ==========
+  {
+    name: "Développé couché barre",
+    type: "POLY", dayNumber: 3, orderIndex: 1, prescription: "4×6-10",
+    description: "Vidéo 26:03 — Bench press medium grip. Base pectorale, charge maximale.",
+    muscleGroups: "Pecs · Triceps · Épaules ant.",
+  },
+  {
+    name: "Écarté à la poulie",
+    type: "ISO", dayNumber: 3, orderIndex: 2, prescription: "3×12-15",
+    description: "Vidéo 27:53 — Cable fly. Étirement pectoral en tension constante.",
+    muscleGroups: "Pecs",
+  },
+  {
+    name: "Élévation latérale",
+    type: "ISO", dayNumber: 3, orderIndex: 3, prescription: "4×12-20",
+    description: "Vidéo 30:45 — Modified lateral raise, version corrigée. Cible deltoïde latéral.",
+    muscleGroups: "Épaules (deltoïde latéral)",
+  },
+  {
+    name: "Extension triceps poulie",
+    type: "ISO", dayNumber: 3, orderIndex: 4, prescription: "3×10-15",
+    description: "Vidéo 31:35 — Tricep pushdown câble. Coudes fixes près du corps.",
+    muscleGroups: "Triceps",
+  },
 ];
 
 // ---------- Catalogue d'aliments (macros par 100g, sauf piece) ----------

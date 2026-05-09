@@ -32,6 +32,7 @@ enum MealSlot {
 
 model UserProfile {
   id            Int      @id @default(autoincrement())
+  displayName   String?  // prénom, nom ou pseudo affiché dans l'app
   age           Int
   sex           Sex      @default(MALE)
   heightCm      Float
@@ -48,6 +49,19 @@ model WeightLog {
   weightKg  Float
   notes     String?
   createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+// Suivi journalier : pas, hydratation, notes. Une ligne par jour calendaire (UTC midnight).
+model DailyLog {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique
+  steps     Int      @default(0)
+  waterMl   Int      @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([date])
 }

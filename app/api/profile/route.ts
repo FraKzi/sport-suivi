@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const PUT_SCHEMA = z.object({
+  displayName: z.string().trim().min(1).max(30).nullable().optional(),
   age: z.number().int().min(10).max(100),
   sex: z.enum(["MALE", "FEMALE"]),
   heightCm: z.number().min(100).max(250),

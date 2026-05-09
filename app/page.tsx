@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardTitle, Stat, Badge } from "@/components/ui";
 import { computeTargets, GOAL_LABEL } from "@/lib/macros";
 import { WeightChart } from "@/components/WeightChart";
+import {
+  buildDailyQuests,
+  computeStreak,
+  DEFAULT_STEPS_TARGET,
+  localYmd,
+  WATER_ML_PER_KG,
+  WATER_TRAINING_BONUS_ML,
+} from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +21,19 @@ export default async function DashboardPage() {
     orderBy: { date: "desc" },
     take: 5,
     include: { sets: true },
+  });
+
+  // Streak inputs : sessions récentes + dailyLogs récents
+  const since = new Date();
+  since.setDate(since.getDate() - 60);
+  const recentSessions = await prisma.workoutSession.findMany({
+    where: { date: { gte: since } },
+    select: { date: true, durationMin: true },
+    orderBy: { date: "desc" },
+  });
+  const recentLogs = await prisma.dailyLog.findMany({
+    where: { date: { gte: since } },
+    orderBy: { date: "desc" },
   });
 
   const targets = profile
@@ -42,11 +63,130 @@ export default async function DashboardPage() {
   const weightDelta =
     lastWeights.length === 2 ? lastWeights[1].weightKg - lastWeights[0].weightKg : 0;
 
+  // Aujourd'hui : combiner steps/water du log + détection séance
+  const todayKey = localYmd(new Date());
+  const todayLog = recentLogs.find((l) => localYmd(l.date) === todayKey);
+  const todayWorkout = recentSessions.find((s) => localYmd(s.date) === todayKey) ?? null;
+
+  const baseWaterTarget = Math.round(profile.currentWeight * WATER_ML_PER_KG);
+  const waterTargetMl = baseWaterTarget + (todayWorkout ? WATER_TRAINING_BONUS_ML : 0);
+  const stepsTarget = DEFAULT_STEPS_TARGET;
+
+  const quests = buildDailyQuests({
+    hasWorkout: !!todayWorkout,
+    todaySteps: todayLog?.steps ?? 0,
+    todayWaterMl: todayLog?.waterMl ?? 0,
+    waterTargetMl,
+    stepsTarget,
+  });
+  const questsDone = quests.filter((q) => q.done).length;
+  const allDone = questsDone === quests.length;
+
+  const streak = computeStreak(
+    recentSessions.map((s) => ({ date: s.date.toISOString() })),
+    recentLogs.map((l) => ({
+      date: l.date.toISOString(),
+      steps: l.steps,
+      waterMl: l.waterMl,
+    })),
+    waterTargetMl,
+    stepsTarget,
+  );
+
+  // Salutation contextuelle (matin / aprem / soir)
+  const hour = new Date().getHours();
+  const timeGreeting =
+    hour < 6 ? "Bonne nuit" : hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
+  const name = profile.displayName?.trim();
+  const greeting = name ? `${timeGreeting}, ${name} 👋` : "Tableau de bord";
+
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">Tableau de bord</h1>
+      <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold">{greeting}</h1>
+          {name && (
+            <p className="text-xs text-muted mt-1">
+              {streak >= 1
+                ? `${streak} jour${streak > 1 ? "s" : ""} de streak — continue comme ça`
+                : "Démarre ta streak en validant une quête aujourd'hui"}
+            </p>
+          )}
+        </div>
         <Badge tone="accent">{GOAL_LABEL[profile.goal]}</Badge>
+      </div>
+
+      {/* Streak + Quêtes — gros bloc gamification */}
+      <div className="grid md:grid-cols-[auto_1fr] gap-4">
+        {/* Streak */}
+        <Card className="flex flex-col items-center justify-center text-center min-w-[180px]">
+          <div className="text-5xl mb-1" aria-hidden>
+            {streak >= 7 ? "🔥" : streak >= 3 ? "🌟" : streak >= 1 ? "💪" : "🌱"}
+          </div>
+          <div className="text-4xl font-bold tabular-nums leading-none">{streak}</div>
+          <div className="text-xs text-muted mt-1">
+            {streak <= 1 ? "jour de streak" : "jours de streak"}
+          </div>
+          {streak >= 7 && (
+            <div className="text-[10px] text-warning mt-2 italic">En feu, ne lâche rien !</div>
+          )}
+        </Card>
+
+        {/* Quêtes du jour */}
+        <Card>
+          <div className="flex items-baseline justify-between flex-wrap gap-2 mb-3">
+            <CardTitle>Quêtes du jour</CardTitle>
+            {allDone ? (
+              <Badge tone="success">🎉 Journée complète</Badge>
+            ) : (
+              <span className="text-xs text-muted tabular-nums">
+                {questsDone} / {quests.length}
+              </span>
+            )}
+          </div>
+          <ul className="space-y-2.5">
+            {quests.map((q) => (
+              <li key={q.id} className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0 transition-colors ${
+                    q.done ? "bg-success/20 text-success" : "bg-surface2"
+                  }`}
+                  aria-hidden
+                >
+                  {q.done ? "✓" : q.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div
+                    className={`text-sm font-medium transition-colors ${
+                      q.done ? "line-through text-muted" : ""
+                    }`}
+                  >
+                    {q.label}
+                  </div>
+                  <div className="text-xs text-muted truncate">{q.detail}</div>
+                </div>
+                <div className="w-20 sm:w-28 bg-surface2 rounded-full h-1.5 overflow-hidden shrink-0">
+                  <div
+                    className={`h-full transition-all duration-700 ease-out ${
+                      q.done ? "bg-success" : "bg-accent"
+                    }`}
+                    style={{ width: `${q.progress * 100}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+            <Link href="/journal" className="text-xs text-accent hover:underline">
+              Aller au journal →
+            </Link>
+            {!todayWorkout && (
+              <Link href="/seances" className="text-xs text-accent hover:underline">
+                Démarrer une séance →
+              </Link>
+            )}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -9,6 +9,7 @@ type Props = { initial: UserProfile | null };
 
 export function ProfileForm({ initial }: Props) {
   const router = useRouter();
+  const [displayName, setDisplayName] = useState<string>(initial?.displayName ?? "");
   const [age, setAge] = useState<number>(initial?.age ?? 25);
   const [sex, setSex] = useState<Sex>(initial?.sex ?? "MALE");
   const [heightCm, setHeightCm] = useState<number>(initial?.heightCm ?? 180);
@@ -26,7 +27,15 @@ export function ProfileForm({ initial }: Props) {
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ age, sex, heightCm, currentWeight: weight, tdee, goal }),
+      body: JSON.stringify({
+        displayName: displayName.trim() || null,
+        age,
+        sex,
+        heightCm,
+        currentWeight: weight,
+        tdee,
+        goal,
+      }),
     });
     setSaving(false);
     if (res.ok) {
@@ -51,6 +60,17 @@ export function ProfileForm({ initial }: Props) {
       <Card>
         <CardTitle>Informations personnelles</CardTitle>
         <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <Field label="Prénom / pseudo" hint="Affiché sur le tableau de bord">
+              <input
+                type="text"
+                maxLength={30}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="ex: Lucas"
+              />
+            </Field>
+          </div>
           <Field label="Âge">
             <input type="number" value={age} onChange={(e) => setAge(+e.target.value)} />
           </Field>
