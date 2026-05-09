@@ -11,6 +11,7 @@ const links = [
   { href: "/historique", label: "Historique" },
   { href: "/nutrition", label: "Nutrition" },
   { href: "/courses", label: "Courses" },
+  { href: "/mesures", label: "Mesures" },
   { href: "/profil", label: "Profil" },
 ];
 

@@ -53,6 +53,23 @@ model WeightLog {
   @@index([date])
 }
 
+// Mensurations corporelles : tour de taille, % MG, etc.
+model BodyMeasurement {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @default(now())
+  waistCm     Float?   // tour de taille (au nombril, indicateur clé fat-loss)
+  hipCm       Float?   // tour de hanches (Navy formula F)
+  neckCm      Float?   // tour de cou (Navy formula)
+  chestCm     Float?   // tour de poitrine
+  armCm       Float?   // tour de bras (au plus large, contracté)
+  thighCm     Float?   // tour de cuisse
+  bodyFatPct  Float?   // saisie manuelle si dispo (impédancemètre, DEXA…)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
 // Suivi journalier : pas, hydratation, notes. Une ligne par jour calendaire (UTC midnight).
 model DailyLog {
   id        Int      @id @default(autoincrement())
