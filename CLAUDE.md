@@ -86,11 +86,25 @@ Pages (`app/<route>/page.tsx`) are server components that fetch with Prisma and 
 
 ## Workflow (mandatory)
 
+### Auto-commit and auto-push (don't ask)
+
+After completing a coherent unit of work (feature, fix, refactor), commit and push **without asking the user**. The user has authorized this as a durable instruction. Apply the workflow:
+
+1. `npx tsc --noEmit` — must exit 0
+2. Smoke-test the affected routes against `npm run dev` (already running in background)
+3. `git add` the specific files (never `git add .` — avoids staging stray `app/.claude/` etc.)
+4. `git commit` — split into multiple logical commits if the work spans distinct features (match the `feat:` / `chore:` / `fix:` prefixes used in the existing log)
+5. `git push origin main`
+
+Don't ask "should I commit?" or "ready to push?". Just do it after the test gate passes. If the test gate fails, stop and report — don't push broken code.
+
+**Still confirm before**: force-pushing, rewriting published history, deleting branches, anything destructive. The auto-push authorization is for normal forward-progress commits only.
+
 ### Test before pushing to git
 
-Never `git push` without testing the change first. There's no test suite, so "test" means: at minimum run `npx tsc --noEmit` and `curl` the affected routes against `npm run dev`. For UI changes, also verify in a browser that the feature works end-to-end. If a test can't be done (e.g. iOS-specific behavior), say so explicitly rather than skipping.
+There's no test suite, so "test" means: at minimum run `npx tsc --noEmit` and `curl` the affected routes against `npm run dev`. For UI changes, also verify in a browser that the feature works end-to-end. If a test can't be done (e.g. iOS-specific behavior), say so explicitly rather than skipping.
 
-The order is always: edit → `tsc --noEmit` → dev-server smoke test → commit → only then push.
+The order is always: edit → `tsc --noEmit` → dev-server smoke test → commit → push.
 
 ### Database changes
 
