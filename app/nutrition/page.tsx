@@ -5,6 +5,7 @@ import { computeTargets, GOAL_LABEL, rescalePlan, macrosForMeal } from "@/lib/ma
 import { WeightLogger } from "./WeightLogger";
 import { VariantSelector } from "./VariantSelector";
 import { MealConsumedToggle } from "./MealConsumedToggle";
+import { RegenerateSimplePlan } from "./RegenerateSimplePlan";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,19 @@ export default async function NutritionPage() {
   const consumedBySlot = new Map(todayConsumed.map((c) => [c.slot, c.mealId]));
 
   if (!basePlan) {
-    return <p className="text-sm">Plan de base manquant. Relance le seed.</p>;
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <h1 className="text-2xl font-semibold">Nutrition</h1>
+        <Card>
+          <p className="text-sm text-muted">
+            Aucun plan alimentaire actif. Tu peux en générer un automatiquement
+            à partir de tes macros, ou relancer le seed pour récupérer le plan
+            complet avec variantes.
+          </p>
+        </Card>
+        <RegenerateSimplePlan />
+      </div>
+    );
   }
 
   const variantsBySlot: Record<MealSlot, typeof basePlan.meals> = {
@@ -252,6 +265,8 @@ export default async function NutritionPage() {
           );
         })}
       </div>
+
+      <RegenerateSimplePlan />
     </div>
   );
 }
