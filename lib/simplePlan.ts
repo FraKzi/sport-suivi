@@ -25,19 +25,28 @@ export type SimpleFood = {
 };
 
 export const SIMPLE_FOODS = {
-  avoine:      { name: "Flocons d'avoine",          unit: "g",     kcalPer100: 380, proteinPer100: 13,  carbsPer100: 60, fatPer100: 7 },
-  oeufs:       { name: "Œuf entier",                unit: "piece", unitGrams: 50, kcalPer100: 155, proteinPer100: 13,  carbsPer100: 1,  fatPer100: 11 },
-  skyr:        { name: "Skyr 0%",                   unit: "g",     kcalPer100: 60,  proteinPer100: 11,  carbsPer100: 4,  fatPer100: 0.2 },
-  poulet:      { name: "Filet de poulet (cru)",     unit: "g",     kcalPer100: 110, proteinPer100: 23,  carbsPer100: 0,  fatPer100: 2 },
-  dinde:       { name: "Escalope de dinde (crue)",  unit: "g",     kcalPer100: 110, proteinPer100: 23,  carbsPer100: 0,  fatPer100: 1.5 },
-  thon:        { name: "Thon au naturel",           unit: "g",     kcalPer100: 115, proteinPer100: 26,  carbsPer100: 0,  fatPer100: 1 },
-  riz:         { name: "Riz blanc (cru)",           unit: "g",     kcalPer100: 350, proteinPer100: 7,   carbsPer100: 78, fatPer100: 0.5 },
-  patateDouce: { name: "Patate douce (crue)",       unit: "g",     kcalPer100: 86,  proteinPer100: 1.6, carbsPer100: 20, fatPer100: 0.1 },
-  banane:      { name: "Banane",                    unit: "piece", unitGrams: 120, kcalPer100: 89,  proteinPer100: 1.1, carbsPer100: 23, fatPer100: 0.3 },
-  brocoli:     { name: "Brocoli",                   unit: "g",     kcalPer100: 34,  proteinPer100: 2.8, carbsPer100: 7,  fatPer100: 0.4 },
-  salade:      { name: "Salade verte",              unit: "g",     kcalPer100: 15,  proteinPer100: 1.4, carbsPer100: 3,  fatPer100: 0.2 },
-  huileOlive:  { name: "Huile d'olive",             unit: "ml",    kcalPer100: 884, proteinPer100: 0,   carbsPer100: 0,  fatPer100: 100 },
-  amandes:     { name: "Amandes",                   unit: "g",     kcalPer100: 580, proteinPer100: 21,  carbsPer100: 22, fatPer100: 50 },
+  avoine:        { name: "Flocons d'avoine",          unit: "g",     kcalPer100: 380, proteinPer100: 13,  carbsPer100: 60, fatPer100: 7 },
+  oeufs:         { name: "Œuf entier",                unit: "piece", unitGrams: 50, kcalPer100: 155, proteinPer100: 13,  carbsPer100: 1,  fatPer100: 11 },
+  skyr:          { name: "Skyr 0%",                   unit: "g",     kcalPer100: 60,  proteinPer100: 11,  carbsPer100: 4,  fatPer100: 0.2 },
+  poulet:        { name: "Filet de poulet (cru)",     unit: "g",     kcalPer100: 110, proteinPer100: 23,  carbsPer100: 0,  fatPer100: 2 },
+  dinde:         { name: "Escalope de dinde (crue)",  unit: "g",     kcalPer100: 110, proteinPer100: 23,  carbsPer100: 0,  fatPer100: 1.5 },
+  thon:          { name: "Thon au naturel",           unit: "g",     kcalPer100: 115, proteinPer100: 26,  carbsPer100: 0,  fatPer100: 1 },
+  riz:           { name: "Riz blanc (cru)",           unit: "g",     kcalPer100: 350, proteinPer100: 7,   carbsPer100: 78, fatPer100: 0.5 },
+  patateDouce:   { name: "Patate douce (crue)",       unit: "g",     kcalPer100: 86,  proteinPer100: 1.6, carbsPer100: 20, fatPer100: 0.1 },
+  banane:        { name: "Banane",                    unit: "piece", unitGrams: 120, kcalPer100: 89,  proteinPer100: 1.1, carbsPer100: 23, fatPer100: 0.3 },
+  brocoli:       { name: "Brocoli",                   unit: "g",     kcalPer100: 34,  proteinPer100: 2.8, carbsPer100: 7,  fatPer100: 0.4 },
+  salade:        { name: "Salade verte",              unit: "g",     kcalPer100: 15,  proteinPer100: 1.4, carbsPer100: 3,  fatPer100: 0.2 },
+  huileOlive:    { name: "Huile d'olive",             unit: "ml",    kcalPer100: 884, proteinPer100: 0,   carbsPer100: 0,  fatPer100: 100 },
+  amandes:       { name: "Amandes",                   unit: "g",     kcalPer100: 580, proteinPer100: 21,  carbsPer100: 22, fatPer100: 50 },
+  // ---- Assaisonnements & dessert (anti-fadeur) ----
+  chocolatNoir:  { name: "Chocolat noir 85%",         unit: "g",     kcalPer100: 600, proteinPer100: 9,   carbsPer100: 14, fatPer100: 50 },
+  sauceSoja:     { name: "Sauce soja",                unit: "ml",    kcalPer100: 50,  proteinPer100: 5,   carbsPer100: 5,  fatPer100: 0 },
+  moutarde:      { name: "Moutarde de Dijon",         unit: "g",     kcalPer100: 80,  proteinPer100: 8,   carbsPer100: 4,  fatPer100: 4 },
+  citron:        { name: "Citron",                    unit: "piece", unitGrams: 60,   kcalPer100: 17,  proteinPer100: 0.6, carbsPer100: 5,  fatPer100: 0.2 },
+  cannelle:      { name: "Cannelle moulue",           unit: "g",     kcalPer100: 247, proteinPer100: 4,   carbsPer100: 80, fatPer100: 2 },
+  herbes:        { name: "Herbes de Provence",        unit: "g",     kcalPer100: 250, proteinPer100: 9,   carbsPer100: 50, fatPer100: 5 },
+  paprika:       { name: "Paprika fumé",              unit: "g",     kcalPer100: 280, proteinPer100: 14,  carbsPer100: 54, fatPer100: 13 },
+  ail:           { name: "Ail (gousse)",              unit: "piece", unitGrams: 4,    kcalPer100: 149, proteinPer100: 6.4, carbsPer100: 33, fatPer100: 0.5 },
 } satisfies Record<string, SimpleFood>;
 
 export type SimpleFoodKey = keyof typeof SIMPLE_FOODS;
@@ -71,21 +80,33 @@ type Template = {
 const TEMPLATES: Record<MealSlot, Template> = {
   BREAKFAST: {
     fixed: [
-      { foodKey: "banane", quantity: 1 },
-      { foodKey: "oeufs",  quantity: 3 },
+      { foodKey: "banane",   quantity: 1 },
+      { foodKey: "oeufs",    quantity: 3 },
+      { foodKey: "cannelle", quantity: 2 },  // saupoudré sur l'avoine
     ],
     fatSource: null, // les œufs fournissent déjà ~16g F
     proteinSource: "skyr",
     carbSource: "avoine",
   },
   LUNCH: {
-    fixed: [{ foodKey: "brocoli", quantity: 200 }],
+    fixed: [
+      { foodKey: "brocoli",   quantity: 200 },
+      { foodKey: "sauceSoja", quantity: 10 },  // marinade poulet / riz
+      { foodKey: "ail",       quantity: 2 },   // 2 gousses
+      { foodKey: "herbes",    quantity: 2 },   // sur le poulet
+      { foodKey: "citron",    quantity: 0.5 }, // pressé sur le brocoli
+    ],
     fatSource: "huileOlive",
     proteinSource: "poulet",
     carbSource: "riz",
   },
   DINNER: {
-    fixed: [{ foodKey: "salade", quantity: 100 }],
+    fixed: [
+      { foodKey: "salade",       quantity: 100 },
+      { foodKey: "moutarde",     quantity: 10 },  // sauce pour la dinde
+      { foodKey: "paprika",      quantity: 2 },   // sur la patate douce
+      { foodKey: "chocolatNoir", quantity: 20 },  // dessert
+    ],
     fatSource: "amandes",
     proteinSource: "dinde",
     carbSource: "patateDouce",

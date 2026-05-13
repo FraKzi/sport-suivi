@@ -39,9 +39,11 @@ export function RegenerateSimplePlan() {
     <Card>
       <CardTitle>💡 Plan simple auto-généré</CardTitle>
       <p className="text-xs text-muted mb-3">
-        Crée un plan minimaliste calé sur tes cibles macro actuelles :
-        avoine · œufs · skyr · poulet · dinde · riz · patate douce · brocoli · salade ·
-        huile d'olive · amandes · banane. Idéal si tu veux repartir d'une base claire.
+        Crée un plan minimaliste calé sur tes cibles macro actuelles. Base :
+        avoine · œufs · skyr · poulet · dinde · riz · patate douce · brocoli ·
+        salade · huile d'olive · amandes · banane. Assaisonnements pour ne pas
+        que ce soit fade : cannelle (BF), sauce soja · ail · herbes · citron (déj),
+        moutarde · paprika · chocolat noir 85% (dîner).
       </p>
       <div className="flex items-center gap-3 flex-wrap">
         <Button onClick={regenerate} disabled={busy}>
