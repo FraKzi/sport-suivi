@@ -24,6 +24,14 @@ enum ExerciseType {
   ISO
 }
 
+enum ActivityLevel {
+  SEDENTARY    // 1.2  — bureau, peu/pas de sport
+  LIGHT        // 1.375 — 1-3 séances/semaine ou métier debout
+  MODERATE     // 1.55 — 3-5 séances/semaine
+  HIGH         // 1.725 — 6-7 séances/semaine ou métier physique
+  VERY_HIGH    // 1.9  — sport quotidien intense + métier physique
+}
+
 enum MealSlot {
   BREAKFAST
   LUNCH
@@ -31,16 +39,35 @@ enum MealSlot {
 }
 
 model UserProfile {
-  id            Int      @id @default(autoincrement())
-  displayName   String?  // prénom, nom ou pseudo affiché dans l'app
+  id            Int           @id @default(autoincrement())
+  displayName   String?       // prénom, nom ou pseudo affiché dans l'app
   age           Int
-  sex           Sex      @default(MALE)
+  sex           Sex           @default(MALE)
   heightCm      Float
   currentWeight Float
+  activityLevel ActivityLevel @default(MODERATE)
   tdee          Int
-  goal          Goal     @default(RECOMP)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  goal          Goal          @default(RECOMP)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// Snapshot des paramètres de calcul macro (poids / TDEE / activité / objectif).
+// Créé à chaque PUT /api/profile si une de ces 4 valeurs change → permet de
+// reconstruire l'historique des cibles macro dans le temps. Les autres champs
+// (nom, âge, sexe, taille) ne déclenchent pas de snapshot.
+model ProfileSnapshot {
+  id            Int           @id @default(autoincrement())
+  date          DateTime      @default(now())
+  age           Int
+  sex           Sex
+  heightCm      Float
+  weightKg      Float
+  activityLevel ActivityLevel
+  tdee          Int
+  goal          Goal
+
+  @@index([date])
 }
 
 model WeightLog {

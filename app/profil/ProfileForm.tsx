@@ -2,8 +2,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardTitle, Field, Button } from "@/components/ui";
-import { computeTargets, GOAL_LABEL } from "@/lib/macros";
-import type { Goal, Sex, UserProfile } from "@prisma/client";
+import {
+  computeTargets,
+  GOAL_LABEL,
+  ACTIVITY_FACTORS,
+  ACTIVITY_LABEL,
+  ACTIVITY_DESCRIPTION,
+  ACTIVITY_ORDER,
+  estimateTDEE,
+} from "@/lib/macros";
+import type { ActivityLevel, Goal, Sex, UserProfile } from "@prisma/client";
 
 type Props = { initial: UserProfile | null };
 
@@ -14,12 +22,27 @@ export function ProfileForm({ initial }: Props) {
   const [sex, setSex] = useState<Sex>(initial?.sex ?? "MALE");
   const [heightCm, setHeightCm] = useState<number>(initial?.heightCm ?? 180);
   const [weight, setWeight] = useState<number>(initial?.currentWeight ?? 75);
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(
+    initial?.activityLevel ?? "MODERATE",
+  );
   const [tdee, setTdee] = useState<number>(initial?.tdee ?? 2500);
   const [goal, setGoal] = useState<Goal>(initial?.goal ?? "RECOMP");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string>("");
 
   const preview = computeTargets(weight, tdee, goal);
+  const estimatedTdee = estimateTDEE(weight, heightCm, age, sex, activityLevel);
+  const tdeeDiffersFromEstimate = Math.abs(tdee - estimatedTdee) > 25;
+
+  function applyActivityLevel(level: ActivityLevel) {
+    setActivityLevel(level);
+    // Recalcule automatiquement le TDEE pour refléter le nouveau facteur.
+    setTdee(estimateTDEE(weight, heightCm, age, sex, level));
+  }
+
+  function recalcTdee() {
+    setTdee(estimatedTdee);
+  }
 
   async function save() {
     setSaving(true);
@@ -33,6 +56,7 @@ export function ProfileForm({ initial }: Props) {
         sex,
         heightCm,
         currentWeight: weight,
+        activityLevel,
         tdee,
         goal,
       }),
@@ -45,14 +69,6 @@ export function ProfileForm({ initial }: Props) {
       const j = await res.json().catch(() => ({}));
       setMsg("Erreur : " + JSON.stringify(j));
     }
-  }
-
-  function estimateTdeeMifflin() {
-    const bmr =
-      sex === "MALE"
-        ? 10 * weight + 6.25 * heightCm - 5 * age + 5
-        : 10 * weight + 6.25 * heightCm - 5 * age - 161;
-    setTdee(Math.round(bmr * 1.55));
   }
 
   return (
@@ -95,9 +111,48 @@ export function ProfileForm({ initial }: Props) {
       </Card>
 
       <Card>
+        <CardTitle>Niveau d'activité</CardTitle>
+        <p className="text-xs text-muted mb-3">
+          Détermine le facteur appliqué au métabolisme de base pour calculer ton TDEE.
+          Change si ton mode de vie évolue (un nouveau job sédentaire, plus de sport, etc.).
+        </p>
+        <div className="space-y-2">
+          {ACTIVITY_ORDER.map((lvl) => {
+            const active = activityLevel === lvl;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => applyActivityLevel(lvl)}
+                className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${
+                  active
+                    ? "bg-accent/15 border-accent/50"
+                    : "bg-surface2 border-border hover:bg-surface"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-medium">
+                    {ACTIVITY_LABEL[lvl]}
+                    <span className="text-xs text-muted font-normal ml-2">
+                      × {ACTIVITY_FACTORS[lvl]}
+                    </span>
+                  </div>
+                  {active && <span className="text-accent text-xs">✓</span>}
+                </div>
+                <div className="text-xs text-muted mt-0.5">{ACTIVITY_DESCRIPTION[lvl]}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card>
         <CardTitle>Métabolisme & objectif</CardTitle>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="TDEE (kcal / jour)" hint="Tes besoins de maintien">
+          <Field
+            label="TDEE (kcal / jour)"
+            hint={`Estimé Mifflin × ${ACTIVITY_FACTORS[activityLevel]} : ${estimatedTdee} kcal`}
+          >
             <input type="number" value={tdee} onChange={(e) => setTdee(+e.target.value)} />
           </Field>
           <Field label="Objectif">
@@ -110,11 +165,16 @@ export function ProfileForm({ initial }: Props) {
             </select>
           </Field>
         </div>
-        <div className="mt-3">
-          <Button variant="ghost" onClick={estimateTdeeMifflin}>
-            Estimer mon TDEE (Mifflin-St Jeor × 1.55)
-          </Button>
-        </div>
+        {tdeeDiffersFromEstimate && (
+          <div className="mt-3 flex items-center gap-3">
+            <Button variant="ghost" onClick={recalcTdee}>
+              ↻ Aligner sur l'estimation ({estimatedTdee} kcal)
+            </Button>
+            <span className="text-xs text-muted">
+              Tu as overridé manuellement — clique pour revenir à l'auto.
+            </span>
+          </div>
+        )}
       </Card>
 
       <Card>

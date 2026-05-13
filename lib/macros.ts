@@ -1,4 +1,4 @@
-import type { Goal } from "@prisma/client";
+import type { ActivityLevel, Goal } from "@prisma/client";
 
 /**
  * Standards fitness reconnus (Helms / Schoenfeld / Aragon) :
@@ -40,21 +40,66 @@ export function computeTargets(weightKg: number, tdee: number, goal: Goal): Macr
 }
 
 /**
- * Estimateur Mifflin-St Jeor + facteur d'activité (utilitaire optionnel).
- * Activité : sédentaire 1.2 / léger 1.375 / modéré 1.55 / élevé 1.725 / très élevé 1.9
+ * Facteurs d'activité Mifflin-St Jeor — multiplicateur appliqué au BMR pour
+ * obtenir le TDEE. Plus le niveau est élevé, plus on consomme.
+ */
+export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
+  SEDENTARY: 1.2,
+  LIGHT:     1.375,
+  MODERATE:  1.55,
+  HIGH:      1.725,
+  VERY_HIGH: 1.9,
+};
+
+export const ACTIVITY_LABEL: Record<ActivityLevel, string> = {
+  SEDENTARY: "Sédentaire",
+  LIGHT:     "Légèrement actif",
+  MODERATE:  "Modérément actif",
+  HIGH:      "Très actif",
+  VERY_HIGH: "Extrêmement actif",
+};
+
+export const ACTIVITY_DESCRIPTION: Record<ActivityLevel, string> = {
+  SEDENTARY: "Bureau, peu ou pas de sport",
+  LIGHT:     "1-3 séances / semaine ou métier debout",
+  MODERATE:  "3-5 séances / semaine",
+  HIGH:      "6-7 séances / semaine ou métier physique",
+  VERY_HIGH: "Sport quotidien intense + métier physique",
+};
+
+export const ACTIVITY_ORDER: ActivityLevel[] = [
+  "SEDENTARY",
+  "LIGHT",
+  "MODERATE",
+  "HIGH",
+  "VERY_HIGH",
+];
+
+/** BMR Mifflin-St Jeor en kcal/jour. */
+export function bmrMifflin(
+  weightKg: number,
+  heightCm: number,
+  age: number,
+  sex: "MALE" | "FEMALE",
+): number {
+  return sex === "MALE"
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
+    : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+}
+
+/**
+ * Estimateur Mifflin-St Jeor + facteur d'activité.
+ * Accepte soit un ActivityLevel, soit un facteur numérique direct (tests, valeurs custom).
  */
 export function estimateTDEE(
   weightKg: number,
   heightCm: number,
   age: number,
   sex: "MALE" | "FEMALE",
-  activityFactor: number,
+  activity: ActivityLevel | number,
 ): number {
-  const bmr =
-    sex === "MALE"
-      ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
-      : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
-  return Math.round(bmr * activityFactor);
+  const factor = typeof activity === "number" ? activity : ACTIVITY_FACTORS[activity];
+  return Math.round(bmrMifflin(weightKg, heightCm, age, sex) * factor);
 }
 
 // ---------- Scaling des grammages ----------
