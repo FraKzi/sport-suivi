@@ -198,24 +198,6 @@ model DailyLog {
   @@index([date])
 }
 
-// LEGACY — sera supprimé après migration des données vers UserExercise.
-// Nullable FK sur WorkoutSet pendant la transition.
-model Exercise {
-  id           Int          @id @default(autoincrement())
-  name         String       @unique
-  type         ExerciseType
-  dayNumber    Int
-  orderIndex   Int
-  prescription String
-  description  String?
-  muscleGroups String?
-  archived     Boolean      @default(false)
-  sets         WorkoutSet[]
-
-  @@index([dayNumber, orderIndex])
-  @@index([archived])
-}
-
 // Catalogue partagé d'exercices — référence pour le générateur de programme.
 // Read-only depuis l'app, seeded via prisma/seed.ts.
 model ExerciseCatalog {
@@ -303,21 +285,16 @@ model WorkoutSession {
 model WorkoutSet {
   id             Int            @id @default(autoincrement())
   sessionId      Int
-  // exerciseId : LEGACY, sera dropé après migration. userExerciseId est la
-  // nouvelle FK ; pendant la transition les deux coexistent (nullable).
-  exerciseId     Int?
-  userExerciseId Int?
+  userExerciseId Int
   setNumber      Int
   weightKg       Float?
   reps           Int?
   rpe            Float?
   notes          String?
   session        WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  exercise       Exercise?      @relation(fields: [exerciseId], references: [id])
-  userExercise   UserExercise?  @relation(fields: [userExerciseId], references: [id])
+  userExercise   UserExercise   @relation(fields: [userExerciseId], references: [id])
 
   @@index([sessionId])
-  @@index([exerciseId])
   @@index([userExerciseId])
 }
 

@@ -1,108 +1,7 @@
 import { PrismaClient, MealSlot } from "@prisma/client";
+import { EXERCISE_CATALOG } from "../lib/exerciseCatalog";
 
 const prisma = new PrismaClient();
-
-// ---------- Exercices (programme Push / Pull / Legs) ----------
-// Day 1 = Pull, Day 2 = Legs, Day 3 = Push
-const exercises: {
-  name: string;
-  type: "POLY" | "ISO";
-  dayNumber: number;
-  orderIndex: number;
-  prescription: string;
-  description?: string;
-  muscleGroups?: string;
-}[] = [
-  // ========== JOUR 1 — PULL ==========
-  {
-    name: "Tirage vertical poulie",
-    type: "POLY", dayNumber: 1, orderIndex: 1, prescription: "4×8-12",
-    description: "Vidéo 1:23 — tirage à la poulie haute, prise large. Construit la largeur du dos.",
-    muscleGroups: "Dos · Biceps",
-  },
-  {
-    name: "Tirage horizontal buste appuyé",
-    type: "POLY", dayNumber: 1, orderIndex: 2, prescription: "4×8-12",
-    description: "Vidéo 5:30 — rowing avec appui pectoral. Isole le dos sans triche lombaire.",
-    muscleGroups: "Dos · Biceps",
-  },
-  {
-    name: "Tirage croisé unilatéral",
-    type: "ISO", dayNumber: 1, orderIndex: 3, prescription: "3×12-15",
-    description: "Vidéo 7:00 — Cross body lat pull-around. Câble unilatéral, étirement maximal du grand dorsal.",
-    muscleGroups: "Dos (lats)",
-  },
-  {
-    name: "Rowing Pendlay",
-    type: "POLY", dayNumber: 1, orderIndex: 4, prescription: "3×6-8",
-    description: "Vidéo 7:26 — barre au sol entre chaque rep. Renforce explicitement les lats avec gros stimulus neural.",
-    muscleGroups: "Dos · Biceps",
-  },
-  {
-    name: "Écarté inversé poulie",
-    type: "ISO", dayNumber: 1, orderIndex: 5, prescription: "3×15-20",
-    description: "Vidéo 8:45 — pense à \"sweep\" (cf 9:02). Cible deltoïdes postérieurs, santé scapulaire.",
-    muscleGroups: "Épaules post.",
-  },
-  {
-    name: "Curl biceps poulie",
-    type: "ISO", dayNumber: 1, orderIndex: 6, prescription: "3×10-15",
-    description: "Vidéo 10:44 — tension constante grâce au câble.",
-    muscleGroups: "Biceps",
-  },
-
-  // ========== JOUR 2 — LEGS ==========
-  {
-    name: "Squat barre",
-    type: "POLY", dayNumber: 2, orderIndex: 1, prescription: "4×6-10",
-    description: "Vidéo 13:40 — Barbell back squat, roi des quadriceps. Descends jusqu'à parallèle minimum.",
-    muscleGroups: "Quadriceps · Fessiers",
-  },
-  {
-    name: "Soulevé de terre roumain",
-    type: "POLY", dayNumber: 2, orderIndex: 2, prescription: "4×8-12",
-    description: "Vidéo 15:05 — RDL barre libre ou Smith machine. Focus ischios étirés, charnière de hanche.",
-    muscleGroups: "Ischios · Fessiers",
-  },
-  {
-    name: "Leg extension",
-    type: "ISO", dayNumber: 2, orderIndex: 3, prescription: "3×10-15",
-    description: "Vidéo 19:40 — Quad extension (Prime Curl). Isolation pure quadriceps.",
-    muscleGroups: "Quadriceps",
-  },
-  {
-    name: "Leg curl",
-    type: "ISO", dayNumber: 2, orderIndex: 4, prescription: "3×10-15",
-    description: "Vidéo 22:19 — couché ou assis selon machine. Pic de tension en flexion complète.",
-    muscleGroups: "Ischios",
-  },
-
-  // ========== JOUR 3 — PUSH ==========
-  {
-    name: "Développé couché barre",
-    type: "POLY", dayNumber: 3, orderIndex: 1, prescription: "4×6-10",
-    description: "Vidéo 26:03 — Bench press medium grip. Base pectorale, charge maximale.",
-    muscleGroups: "Pecs · Triceps · Épaules ant.",
-  },
-  {
-    name: "Écarté à la poulie",
-    type: "ISO", dayNumber: 3, orderIndex: 2, prescription: "3×12-15",
-    description: "Vidéo 27:53 — Cable fly. Étirement pectoral en tension constante.",
-    muscleGroups: "Pecs",
-  },
-  {
-    name: "Élévation latérale",
-    type: "ISO", dayNumber: 3, orderIndex: 3, prescription: "4×12-20",
-    description: "Vidéo 30:45 — Modified lateral raise, version corrigée. Cible deltoïde latéral.",
-    muscleGroups: "Épaules (deltoïde latéral)",
-  },
-  {
-    name: "Extension triceps poulie",
-    type: "ISO", dayNumber: 3, orderIndex: 4, prescription: "3×10-15",
-    description: "Vidéo 31:35 — Tricep pushdown câble. Coudes fixes près du corps.",
-    muscleGroups: "Triceps",
-  },
-];
 
 // ---------- Catalogue d'aliments (macros par 100g, sauf piece) ----------
 const foods: {
@@ -348,37 +247,28 @@ const mealVariants: MealVariant[] = [
 async function main() {
   console.log("Seeding…");
 
-  // Migration : supprimer les Exercises absents du nouveau seed (et les sessions
-  // qui les référencent). Idempotent : sans changement de programme, no-op.
-  const currentNames = exercises.map((e) => e.name);
-  const orphans = await prisma.exercise.findMany({
-    where: { name: { notIn: currentNames } },
-    select: { id: true, name: true },
-  });
-  if (orphans.length > 0) {
-    const orphanIds = orphans.map((o) => o.id);
-    const affectedSessions = await prisma.workoutSession.findMany({
-      where: { sets: { some: { exerciseId: { in: orphanIds } } } },
-      select: { id: true },
-    });
-    if (affectedSessions.length > 0) {
-      await prisma.workoutSession.deleteMany({
-        where: { id: { in: affectedSessions.map((s) => s.id) } },
-      });
-      console.log(`  ⚠ ${affectedSessions.length} session(s) supprimée(s) (programme remplacé)`);
-    }
-    await prisma.exercise.deleteMany({ where: { id: { in: orphanIds } } });
-    console.log(`  ⚠ ${orphans.length} exercice(s) obsolète(s) supprimé(s) : ${orphans.map((o) => o.name).join(", ")}`);
-  }
-
-  for (const e of exercises) {
-    await prisma.exercise.upsert({
+  // Upsert du catalogue partagé (référence pour le générateur). Idempotent.
+  for (const e of EXERCISE_CATALOG) {
+    await prisma.exerciseCatalog.upsert({
       where: { name: e.name },
-      update: { ...e },
-      create: { ...e },
+      create: {
+        name: e.name,
+        type: e.type,
+        primaryMuscle: e.primaryMuscle,
+        secondaryMuscles: e.secondaryMuscles?.join(",") ?? null,
+        isCompound: e.isCompound,
+        description: e.description ?? null,
+      },
+      update: {
+        type: e.type,
+        primaryMuscle: e.primaryMuscle,
+        secondaryMuscles: e.secondaryMuscles?.join(",") ?? null,
+        isCompound: e.isCompound,
+        description: e.description ?? null,
+      },
     });
   }
-  console.log(`  ✓ ${exercises.length} exercices`);
+  console.log(`  ✓ ${EXERCISE_CATALOG.length} exercices au catalogue`);
 
   for (const f of foods) {
     await prisma.food.upsert({
