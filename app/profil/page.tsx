@@ -4,7 +4,10 @@ import { ProfileForm } from "./ProfileForm";
 import { ProfileHistory } from "./ProfileHistory";
 import { ExportData } from "./ExportData";
 import { ProgramSection } from "./ProgramSection";
+import { AccountSection } from "./AccountSection";
+import { GoalsSection } from "./GoalsSection";
 import { SPLIT_LABEL } from "@/lib/programGenerator";
+import { WATER_ML_PER_KG, DEFAULT_STEPS_TARGET } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +60,19 @@ export default async function ProfilPage() {
             : null
         }
       />
+      <GoalsSection
+        waterTargetMl={profile?.waterTargetMl ?? null}
+        stepsTarget={profile?.stepsTarget ?? null}
+        autoWaterTargetMl={
+          profile
+            ? Math.round(profile.currentWeight * WATER_ML_PER_KG)
+            : 2500
+        }
+        autoStepsTarget={DEFAULT_STEPS_TARGET}
+      />
       <ProfileHistory snapshots={snapshots} />
       <ExportData counts={{ workouts, weights, measurements, daily, meals }} />
+      <AccountSection username={user.username} isAdmin={user.isAdmin} />
     </div>
   );
 }
