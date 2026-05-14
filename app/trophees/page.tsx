@@ -35,7 +35,7 @@ export default async function TropheesPage() {
       sets: s.sets.map((set) => ({
         weightKg: set.weightKg,
         reps: set.reps,
-        exerciseName: set.exercise.name,
+        exerciseName: set.exercise?.name ?? "",
       })),
     })),
     dailyLogs: dailyLogs.map((l) => ({

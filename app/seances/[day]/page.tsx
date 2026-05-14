@@ -32,7 +32,11 @@ export default async function DayPage({ params }: { params: { day: string } }) {
     },
     select: { exerciseId: true, weightKg: true, reps: true },
   });
-  const bestVolumes = computeBestVolumes(allSets);
+  // exerciseId est nullable au niveau du schéma (transition vers UserExercise)
+  // mais ces lignes ont toutes exerciseId non-null car on filtre par `in`
+  const bestVolumes = computeBestVolumes(
+    allSets.map((s) => ({ exerciseId: s.exerciseId!, weightKg: s.weightKg, reps: s.reps })),
+  );
 
   return (
     <SessionLogger
@@ -42,13 +46,15 @@ export default async function DayPage({ params }: { params: { day: string } }) {
         lastSession
           ? {
               date: lastSession.date.toISOString(),
-              sets: lastSession.sets.map((s) => ({
-                exerciseId: s.exerciseId,
-                setNumber: s.setNumber,
-                weightKg: s.weightKg,
-                reps: s.reps,
-                rpe: s.rpe,
-              })),
+              sets: lastSession.sets
+                .filter((s) => s.exerciseId != null)
+                .map((s) => ({
+                  exerciseId: s.exerciseId!,
+                  setNumber: s.setNumber,
+                  weightKg: s.weightKg,
+                  reps: s.reps,
+                  rpe: s.rpe,
+                })),
             }
           : null
       }

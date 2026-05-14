@@ -38,7 +38,7 @@ export default async function HistoriquePage() {
   });
   const volumeSets = recentSets.map((s) => ({
     date: s.session.date.toISOString(),
-    muscleGroups: s.exercise.muscleGroups,
+    muscleGroups: s.exercise?.muscleGroups ?? null,
   }));
 
   // Sets des 365 derniers jours pour la heatmap calendaire

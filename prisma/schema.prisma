@@ -38,6 +38,32 @@ enum MealSlot {
   DINNER
 }
 
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  QUADS
+  HAMSTRINGS
+  GLUTES
+  CALVES
+  ABS
+}
+
+enum MusclePriorityLevel {
+  MAINTENANCE  // ~6-10 sets/semaine
+  MODERATE     // ~10-14 sets/semaine
+  EMPHASIZED   // ~15-20 sets/semaine
+}
+
+enum SplitType {
+  PPL_3      // Pull / Legs / Push
+  UL_4       // Upper / Lower × 2
+  PPL_UL_5   // Pull / Push / Legs / Upper / Lower
+  PPL_6      // Pull / Push / Legs × 2
+}
+
 // ============== AUTHENTIFICATION ==============
 
 model User {
@@ -60,6 +86,7 @@ model User {
   authSessions     AuthSession[]
   invitesCreated   InviteCode[]         @relation("InviteCreator")
   inviteUsed       InviteCode?          @relation("InviteConsumer")
+  programs         UserProgram[]
 }
 
 // Session HTTP-only cookie. Le token aléatoire (32 bytes hex) est aussi l'id.
@@ -171,7 +198,8 @@ model DailyLog {
   @@index([date])
 }
 
-// Catalogue d'exercices partagé entre utilisateurs.
+// LEGACY — sera supprimé après migration des données vers UserExercise.
+// Nullable FK sur WorkoutSet pendant la transition.
 model Exercise {
   id           Int          @id @default(autoincrement())
   name         String       @unique
@@ -185,6 +213,74 @@ model Exercise {
   sets         WorkoutSet[]
 
   @@index([dayNumber, orderIndex])
+  @@index([archived])
+}
+
+// Catalogue partagé d'exercices — référence pour le générateur de programme.
+// Read-only depuis l'app, seeded via prisma/seed.ts.
+model ExerciseCatalog {
+  id               Int            @id @default(autoincrement())
+  name             String         @unique
+  type             ExerciseType
+  primaryMuscle    MuscleGroup
+  // CSV de MuscleGroup, ex: "TRICEPS,SHOULDERS" — utilisé pour compter le
+  // volume secondaire et pour filtrer dans le générateur.
+  secondaryMuscles String?
+  isCompound       Boolean        @default(false)
+  description      String?
+  userExercises    UserExercise[]
+}
+
+// Programme actif d'un utilisateur. Un seul actif à la fois (active=true).
+// Regénéré via /api/program/generate ; les anciens deviennent active=false.
+model UserProgram {
+  id          Int                   @id @default(autoincrement())
+  userId      Int
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  split       SplitType
+  daysPerWeek Int
+  // JSON encoded array, ex: ["Pull","Legs","Push"] pour PPL_3.
+  daysLabels  String
+  active      Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  exercises   UserExercise[]
+  priorities  MuscleGroupPriority[]
+
+  @@index([userId, active])
+}
+
+model MuscleGroupPriority {
+  id          Int                 @id @default(autoincrement())
+  programId   Int
+  program     UserProgram         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  muscleGroup MuscleGroup
+  priority    MusclePriorityLevel
+
+  @@unique([programId, muscleGroup])
+}
+
+// Exercice tel qu'il apparaît dans le programme d'un user. Snapshot du
+// catalogue à la génération + customisations (renommage, prescription, notes).
+// catalogId nullable pour les exos custom ajoutés à la main.
+model UserExercise {
+  id               Int              @id @default(autoincrement())
+  programId        Int
+  program          UserProgram      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  catalogId        Int?
+  catalog          ExerciseCatalog? @relation(fields: [catalogId], references: [id])
+  name             String
+  type             ExerciseType
+  primaryMuscle    MuscleGroup
+  secondaryMuscles String?
+  dayNumber        Int
+  orderIndex       Int
+  prescription     String
+  description      String?
+  notes            String?
+  archived         Boolean          @default(false)
+  sets             WorkoutSet[]
+
+  @@index([programId, dayNumber, orderIndex])
   @@index([archived])
 }
 
@@ -205,19 +301,24 @@ model WorkoutSession {
 }
 
 model WorkoutSet {
-  id         Int            @id @default(autoincrement())
-  sessionId  Int
-  exerciseId Int
-  setNumber  Int
-  weightKg   Float?
-  reps       Int?
-  rpe        Float?
-  notes      String?
-  session    WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  exercise   Exercise       @relation(fields: [exerciseId], references: [id])
+  id             Int            @id @default(autoincrement())
+  sessionId      Int
+  // exerciseId : LEGACY, sera dropé après migration. userExerciseId est la
+  // nouvelle FK ; pendant la transition les deux coexistent (nullable).
+  exerciseId     Int?
+  userExerciseId Int?
+  setNumber      Int
+  weightKg       Float?
+  reps           Int?
+  rpe            Float?
+  notes          String?
+  session        WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise       Exercise?      @relation(fields: [exerciseId], references: [id])
+  userExercise   UserExercise?  @relation(fields: [userExerciseId], references: [id])
 
   @@index([sessionId])
   @@index([exerciseId])
+  @@index([userExerciseId])
 }
 
 // Catalogue d'aliments partagé.

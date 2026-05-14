@@ -26,7 +26,7 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
   if (!session || session.userId !== user.id) notFound();
 
   const byExo = session.sets.reduce<Record<number, typeof session.sets>>((acc, s) => {
-    (acc[s.exerciseId] ??= []).push(s);
+    (acc[s.exerciseId!] ??= []).push(s);
     return acc;
   }, {});
 
@@ -63,7 +63,7 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
 
       <div className="space-y-3">
         {Object.values(byExo).map((sets) => {
-          const exo = sets[0].exercise;
+          const exo = sets[0].exercise!;
           return (
             <Card key={exo.id} className="!p-4">
               <div className="flex items-baseline justify-between mb-2">

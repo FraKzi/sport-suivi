@@ -42,6 +42,7 @@ export default async function PRsPage() {
   // Regroupe les sets par exerciceId
   const setsByExo = new Map<number, RawSet[]>();
   for (const s of sets) {
+    if (s.exerciseId == null) continue;
     if (!setsByExo.has(s.exerciseId)) setsByExo.set(s.exerciseId, []);
     setsByExo.get(s.exerciseId)!.push({
       weightKg: s.weightKg!,
