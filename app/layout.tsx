@@ -7,12 +7,12 @@ import { HeaderUser } from "@/components/HeaderUser";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Sport Suivi",
+  title: "MyFitnessBuddy",
   description: "Programme musculation, plan alimentaire et progression",
-  applicationName: "Sport Suivi",
+  applicationName: "MyFitnessBuddy",
   appleWebApp: {
     capable: true,
-    title: "Sport Suivi",
+    title: "MyFitnessBuddy",
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -45,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               >
                 <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
                   <Link href="/" className="font-semibold text-lg whitespace-nowrap">
-                    💪 Sport Suivi
+                    MyFitnessBuddy
                   </Link>
                   <HeaderUser username={user.username} isAdmin={user.isAdmin} />
                 </div>

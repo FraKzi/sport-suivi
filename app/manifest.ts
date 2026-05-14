@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sport Suivi",
-    short_name: "Sport Suivi",
-    description: "Suivi muscu, plan alimentaire et progression",
+    name: "MyFitnessBuddy",
+    short_name: "MyFitnessBuddy",
+    description: "Programme muscu, plan alimentaire et progression",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

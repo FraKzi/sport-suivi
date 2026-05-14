@@ -1,4 +1,4 @@
-# Sport Suivi
+# MyFitnessBuddy
 
 App Next.js 14 + Postgres pour suivre programme muscu, plan alimentaire et progression.
 

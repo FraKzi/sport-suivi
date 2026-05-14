@@ -1,7 +1,7 @@
-// Service worker pour Sport Suivi — stratégie network-first avec fallback cache.
+// Service worker pour MyFitnessBuddy — stratégie network-first avec fallback cache.
 // Permet l'installation home-screen + lecture offline des pages déjà visitées.
 
-const CACHE_NAME = "sport-suivi-v1";
+const CACHE_NAME = "myfitnessbuddy-v1";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",

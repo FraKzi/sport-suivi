@@ -20,7 +20,7 @@ export default async function LoginPage({
   }
   return (
     <div className="max-w-sm mx-auto space-y-6 mt-8">
-      <h1 className="text-2xl font-semibold text-center">💪 Sport Suivi</h1>
+      <h1 className="text-2xl font-semibold text-center">MyFitnessBuddy</h1>
       <LoginForm redirectTo={searchParams.redirect ?? "/"} />
       <div className="flex justify-between text-sm">
         <Link href="/forgot-password" className="text-accent hover:underline">

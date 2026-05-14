@@ -38,7 +38,7 @@ Vercel build + déploie en ~1 min. Tu obtiens une URL du genre `https://sport-su
 **iPhone (Safari)** :
 1. Ouvre l'URL Vercel dans Safari
 2. Bouton "Partager" → "Sur l'écran d'accueil"
-3. L'icône Sport Suivi apparaît, l'app s'ouvre en plein écran
+3. L'icône MyFitnessBuddy apparaît, l'app s'ouvre en plein écran
 
 **Android (Chrome)** :
 1. Ouvre l'URL dans Chrome

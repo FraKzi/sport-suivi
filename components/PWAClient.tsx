@@ -85,7 +85,7 @@ export function PWAClient() {
             📲
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold">Installer Sport Suivi</div>
+            <div className="text-sm font-semibold">Installer MyFitnessBuddy</div>
             <p className="text-xs text-muted mt-0.5">
               Ajoute l'app à ton écran d'accueil pour un accès direct, sans barre de
               navigation.
