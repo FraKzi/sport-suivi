@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Personal fitness PWA (FR locale) for tracking a Push/Pull/Legs program, daily nutrition, weight, body measurements, and gamified habit metrics. Single-user app — no auth layer, `UserProfile` is treated as a singleton (`findFirst({ orderBy: { id: "asc" } })`).
+Personal fitness PWA (FR locale) for tracking custom strength programs (PPL_3 / UL_4 / PPL_UL_5 / PPL_6), daily nutrition, weight, body measurements, and gamified habit metrics. **Multi-user** with invite-code signup, session cookies, and `requireUser()` scoping on every read/write. Each user has one active `UserProgram` (generated from the Helms pyramid via `lib/programGenerator.ts`) holding their `UserExercise[]`.
 
 The repo root sits at `sport-suivi/`; the Next.js `app/` directory is the default working directory shown in the shell, but lib/components/prisma all live one level up. Always reference files from the repo root (e.g. `lib/macros.ts`, not `../lib/macros.ts`).
 
@@ -38,11 +38,12 @@ No test runner is configured — there are no tests in this repo.
 
 ### Data model
 
-The Prisma schema (`prisma/schema.prisma`) has three loosely-coupled domains. They share the same `UserProfile` singleton but otherwise don't reference each other:
+The Prisma schema (`prisma/schema.prisma`) has four loosely-coupled domains. All tables (except `ExerciseCatalog` and `Food` which are shared catalogs) are scoped by `userId` with `onDelete: Cascade`:
 
-1. **Training** — `Exercise` → `WorkoutSession` → `WorkoutSet`. `Exercise.archived` is a soft-delete flag; archived exercises stay queryable so historical sessions still resolve, but are filtered out of the active program (`/seances`, `/exercices`). `WorkoutSet → WorkoutSession` cascades on delete; `WorkoutSet → Exercise` does **not** (deleting an exercise referenced by sets must use archive, not hard delete — see `/api/exercises/[id]`).
-2. **Nutrition** — One `MealPlan{isBase:true}` holds many `Meal` rows, several per `MealSlot` (BREAKFAST / LUNCH / DINNER). The active variant per slot is stored in `UserMealPreference` (slot is the PK — one row per slot). Actual eaten meals are logged in `MealConsumption` with a unique `(date, slot)` constraint.
-3. **Daily/body** — `DailyLog` (steps, water, notes; one row per UTC-midnight date), `WeightLog`, `BodyMeasurement`. No FKs into training/nutrition.
+1. **Auth** — `User` → `AuthSession` (cookie token id, 30d TTL) + `InviteCode` (consumed at signup). `lib/auth.ts` exposes `getCurrentUser`, `requireUser`, `requireAdmin`. Middleware (`middleware.ts`) gates everything via cookie presence; the Server Component layout handles the "already logged-in" redirect because Edge runtime can't query the DB.
+2. **Training** — `ExerciseCatalog` (shared, seeded ~54 exos) is the reference for the generator. `UserProgram` (one active per user) carries the `split: SplitType`, `daysLabels` (JSON array), and N `UserExercise` rows. `WorkoutSession` → `WorkoutSet → UserExercise` (FK enforced). `UserExercise.archived` keeps history readable while filtering out of the active program. `WorkoutSet → WorkoutSession` cascades on delete; `WorkoutSet → UserExercise` doesn't.
+3. **Nutrition** — One `MealPlan{isBase:true}` per user holds many `Meal` rows, several per `MealSlot` (BREAKFAST / LUNCH / DINNER). The active variant per slot is stored in `UserMealPreference` (`@@unique([userId, slot])`). Eaten meals are logged in `MealConsumption` with a unique `(userId, date, slot)` constraint.
+4. **Daily/body** — `DailyLog` (one row per `(userId, UTC midnight date)`), `WeightLog`, `BodyMeasurement`. No FKs into training/nutrition.
 
 ### Calculation > storage
 
@@ -50,7 +51,8 @@ Derived metrics are **never persisted**. The codebase consistently recomputes fr
 
 - Streak, daily quests, PRs → `lib/gamification.ts`
 - e1RM (Epley `w × (1 + r/30)`), all-time bests, plateau detection, progression series → `lib/progression.ts`
-- Weekly volume per muscle group → `lib/muscleGroups.ts` (parses canonical strings from `Exercise.muscleGroups`)
+- Weekly volume per muscle group → `lib/muscleGroups.ts` (sums `UserExercise.primaryMuscle` + CSV `secondaryMuscles` enum; no string parsing)
+- Program generation (split → exos with prescription, derived from priorities) → `lib/programGenerator.ts` + `lib/exerciseCatalog.ts`
 - Strength tier (Big 4 ratios), 1RM% tables, plate calculator → `lib/lifting.ts`
 - Macro targets + meal plan rescaling → `lib/macros.ts` (Helms/Schoenfeld/Aragon, see README for goal-specific multipliers)
 - Achievements (24, in 5 categories) → `lib/achievements.ts`
@@ -80,9 +82,9 @@ Pages (`app/<route>/page.tsx`) are server components that fetch with Prisma and 
 
 `app/layout.tsx` renders a minimal sticky header (logo only) and a fixed `NavLinks` bottom tab bar (4 primary tabs + "Plus" → bottom sheet for 7 secondary routes). Anything `fixed` near the bottom (rest timer, install prompt, "Terminer la séance" button) must clear the nav — existing code uses `bottom-24` / `bottom-44`. Both header and nav use `env(safe-area-inset-*)` for iOS notch/home-indicator. Don't reintroduce a top hamburger — the iPhone tap-target bug was the reason the bottom bar exists.
 
-### Seeding gotcha
+### Seeding model
 
-`prisma/seed.ts` is **destructive on exercise renames**: it computes the diff between current DB exercises and the seed list, then deletes the orphans' `WorkoutSession`s (via cascade through `WorkoutSet`). If you rename or remove an exercise in the seed and run `npm run db:seed`, historical sessions referencing the old name are wiped. Prefer renames via the in-app editor (`/exercices`) which preserves history.
+`prisma/seed.ts` upserts the shared `ExerciseCatalog` (from `lib/exerciseCatalog.ts`) and the shared `Food` catalog. **No per-user data is touched by seed.** A user's program lives in `UserProgram` + `UserExercise` and is generated via `/api/program/generate` (or the legacy migration script `prisma/migrate-to-programs.ts` for the initial frakzi import). Exercise renames in the catalog don't break history because `UserExercise` snapshots the name at generation time.
 
 ## Workflow (mandatory)
 
@@ -110,10 +112,10 @@ The order is always: edit → `tsc --noEmit` → dev-server smoke test → commi
 
 When a change touches `prisma/schema.prisma`, the DB is out of sync until you run **both** of these:
 
-1. `npm run db:push` — applies the schema diff to the running Postgres (Neon)
-2. `npm run db:seed` — re-runs the seed if the change involves new reference data (foods, exercises, base meal plan) that the app expects on first boot
+1. `npm run db:push` — applies the schema diff to the running Postgres (Neon). Add `--accept-data-loss` only when the user has explicitly authorized dropping data (eg. removing a deprecated column with existing rows).
+2. `npm run db:seed` — re-runs the seed if the change involves new reference data (foods, exercise catalog, base meal plan) that the app expects on first boot
 
-Rule of thumb: schema-only change (new column, new enum value) → just `db:push`. Schema change that introduces a new table the seed populates, or modifies the catalog (foods/exercises), → `db:push` then `db:seed`. The seed is idempotent on most rows (upsert by name) but **destructive on exercise renames** (see Seeding gotcha below) — confirm with the user before running it if exercises were renamed.
+Rule of thumb: schema-only change (new column, new enum value) → just `db:push`. Schema change that adds new reference data (foods/catalog/meals) → `db:push` then `db:seed`. The seed is fully idempotent (upsert by name) and **only touches shared catalogs**, never per-user data.
 
 Run these immediately after the schema edit, before the rest of the implementation, so the Prisma client types match what the code expects.
 
