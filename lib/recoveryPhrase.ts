@@ -22,7 +22,6 @@ const WORDS = [
   "plage", "pluie", "pomme", "ponton", "porte", "renard", "rivage", "riviere",
   "rocher", "rose", "rouge", "rubis", "ruche", "ruisseau", "sable", "sapin",
   "soleil", "songe", "souris", "tasse", "tempete", "tigre", "tour", "trefle",
-  "tulipe", "vague", "vase", "velours", "vent", "verre", "vert", "voile",
 ];
 
 if (WORDS.length !== 128) {
