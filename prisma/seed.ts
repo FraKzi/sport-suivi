@@ -33,24 +33,15 @@ const foods: {
   { name: "Pâtes cuites",          unit: "g",     kcalPer100: 158, proteinPer100: 5.8, carbsPer100: 31,  fatPer100: 0.9 },
   // Alternative protéinée maigre quand pas de blancs d'œufs
   { name: "Jambon de poulet maigre", unit: "g",   kcalPer100: 110, proteinPer100: 22,  carbsPer100: 1,   fatPer100: 2 },
-  // ===== Nouvelles protéines / féculents =====
-  { name: "Saumon frais",          unit: "g",     kcalPer100: 200, proteinPer100: 20,  carbsPer100: 0,   fatPer100: 13 },
-  { name: "Cabillaud cuit",        unit: "g",     kcalPer100: 82,  proteinPer100: 18,  carbsPer100: 0,   fatPer100: 0.7 },
-  { name: "Escalope de dinde",     unit: "g",     kcalPer100: 110, proteinPer100: 23,  carbsPer100: 0,   fatPer100: 1.5 },
-  { name: "Quinoa cuit",           unit: "g",     kcalPer100: 120, proteinPer100: 4,   carbsPer100: 21,  fatPer100: 1.9 },
-  { name: "Patate douce cuite",    unit: "g",     kcalPer100: 76,  proteinPer100: 1.4, carbsPer100: 17,  fatPer100: 0.1 },
-  { name: "Tofu ferme",            unit: "g",     kcalPer100: 144, proteinPer100: 17,  carbsPer100: 3,   fatPer100: 8 },
-  { name: "Pois chiches cuits",    unit: "g",     kcalPer100: 160, proteinPer100: 9,   carbsPer100: 27,  fatPer100: 3 },
-  { name: "Salade verte",          unit: "g",     kcalPer100: 15,  proteinPer100: 1,   carbsPer100: 3,   fatPer100: 0.2 },
-  { name: "Fruits rouges (mix)",   unit: "g",     kcalPer100: 40,  proteinPer100: 0.8, carbsPer100: 8,   fatPer100: 0.4 },
-  // ===== Agréments (condiments low-cal) =====
-  // Pour les variantes de repas : portions typiques 5-15g, macros négligeables
-  // mais on les liste pour la shopping list et l'authenticité du suivi.
+  // ===== Agréments (condiments / épices low-cal) =====
+  // Saupoudrés dans les variantes existantes pour parfumer sans flinguer les
+  // macros. Portions typiques 5-15g, impact kcal négligeable mais ils sont
+  // listés pour la shopping list.
   { name: "Moutarde",              unit: "g",     kcalPer100: 66,  proteinPer100: 4,   carbsPer100: 6,   fatPer100: 4 },
   { name: "Sauce soja",            unit: "g",     kcalPer100: 53,  proteinPer100: 8,   carbsPer100: 5,   fatPer100: 0.1 },
   { name: "Jus de citron",         unit: "g",     kcalPer100: 22,  proteinPer100: 0.4, carbsPer100: 7,   fatPer100: 0.2 },
   { name: "Vinaigre balsamique",   unit: "g",     kcalPer100: 88,  proteinPer100: 0,   carbsPer100: 17,  fatPer100: 0 },
-  { name: "Herbes fraîches",       unit: "g",     kcalPer100: 30,  proteinPer100: 3,   carbsPer100: 5,   fatPer100: 0.5 },
+  { name: "Herbes & épices (mix)", unit: "g",     kcalPer100: 30,  proteinPer100: 3,   carbsPer100: 5,   fatPer100: 0.5 },
   { name: "Ail",                   unit: "g",     kcalPer100: 149, proteinPer100: 6,   carbsPer100: 33,  fatPer100: 0.5 },
 ];
 
@@ -174,6 +165,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
       { foodName: "Pomme", quantity: 1 },
+      { foodName: "Moutarde", quantity: 10 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
     ],
   },
   {
@@ -188,6 +181,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
       { foodName: "Pomme", quantity: 1 },
+      { foodName: "Jus de citron", quantity: 10 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
     ],
   },
   {
@@ -202,6 +197,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
       { foodName: "Pomme", quantity: 1 },
+      { foodName: "Ail", quantity: 5 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
     ],
   },
 
@@ -218,6 +215,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Pain complet", quantity: 2 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Moutarde", quantity: 10 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
     ],
   },
   {
@@ -232,6 +231,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Huile d'olive", quantity: 10 },
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
+      { foodName: "Ail", quantity: 5 },
     ],
   },
   {
@@ -245,6 +246,8 @@ const mealVariants: MealVariant[] = [
       { foodName: "Huile d'olive", quantity: 10 },
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 200 },
+      { foodName: "Herbes & épices (mix)", quantity: 3 },
+      { foodName: "Ail", quantity: 5 },
     ],
   },
   {
@@ -259,112 +262,7 @@ const mealVariants: MealVariant[] = [
       { foodName: "Légumes (mix)", quantity: 200 },
       { foodName: "Pain complet", quantity: 2 },
       { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-    ],
-  },
-
-  // ===== NOUVELLES VARIANTES =====
-  {
-    slot: "BREAKFAST",
-    variantKey: "porridge-fruits",
-    displayName: "Porridge fruits rouges",
-    description: "Bowl chaud avec fruits rouges et skyr. Plus de fibres et antioxydants, profil glucides similaire au default.",
-    items: [
-      { foodName: "Flocons d'avoine", quantity: 100 },
-      { foodName: "Lait demi-écrémé", quantity: 250 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 250 },
-      { foodName: "Fruits rouges (mix)", quantity: 120 },
-      { foodName: "Beurre de cacahuète", quantity: 20 },
-    ],
-  },
-  {
-    slot: "LUNCH",
-    variantKey: "saumon-quinoa",
-    displayName: "Saumon & quinoa",
-    description: "Saumon frais et quinoa complet. Riche en oméga-3 et fibres. Citron + herbes pour relever.",
-    items: [
-      { foodName: "Saumon frais", quantity: 150 },
-      { foodName: "Quinoa cuit", quantity: 220 },
-      { foodName: "Légumes (mix)", quantity: 200 },
-      { foodName: "Huile d'olive", quantity: 5 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-      { foodName: "Pomme", quantity: 1 },
-      { foodName: "Jus de citron", quantity: 10 },
-      { foodName: "Herbes fraîches", quantity: 5 },
-    ],
-  },
-  {
-    slot: "LUNCH",
-    variantKey: "salade-poulet",
-    displayName: "Salade poulet & pois chiches",
-    description: "Bowl complet et frais. Idéal en été ou en cut. Vinaigre balsamique pour saucer sans graisses.",
-    items: [
-      { foodName: "Blanc de poulet cuit", quantity: 180 },
-      { foodName: "Pois chiches cuits", quantity: 120 },
-      { foodName: "Salade verte", quantity: 150 },
-      { foodName: "Légumes (mix)", quantity: 150 },
-      { foodName: "Huile d'olive", quantity: 10 },
-      { foodName: "Vinaigre balsamique", quantity: 10 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-      { foodName: "Pomme", quantity: 1 },
-    ],
-  },
-  {
-    slot: "LUNCH",
-    variantKey: "tofu-riz",
-    displayName: "Tofu & riz (végé)",
-    description: "Option végétarienne. Sauce soja + ail pour relever, profil protéique correct grâce au tofu ferme.",
-    items: [
-      { foodName: "Tofu ferme", quantity: 200 },
-      { foodName: "Riz cuit", quantity: 250 },
-      { foodName: "Légumes (mix)", quantity: 200 },
-      { foodName: "Huile d'olive", quantity: 10 },
-      { foodName: "Sauce soja", quantity: 15 },
-      { foodName: "Ail", quantity: 5 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-      { foodName: "Pomme", quantity: 1 },
-    ],
-  },
-  {
-    slot: "DINNER",
-    variantKey: "saumon-pdt",
-    displayName: "Saumon & patate douce",
-    description: "Soir riche en oméga-3 + glucides complexes pour la récup.",
-    items: [
-      { foodName: "Saumon frais", quantity: 150 },
-      { foodName: "Patate douce cuite", quantity: 280 },
-      { foodName: "Légumes (mix)", quantity: 200 },
-      { foodName: "Huile d'olive", quantity: 5 },
-      { foodName: "Jus de citron", quantity: 10 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-    ],
-  },
-  {
-    slot: "DINNER",
-    variantKey: "dinde-quinoa",
-    displayName: "Dinde & quinoa",
-    description: "Maigre + complet. Bonne alternative quand on a déjà mangé du poulet le midi.",
-    items: [
-      { foodName: "Escalope de dinde", quantity: 180 },
-      { foodName: "Quinoa cuit", quantity: 220 },
-      { foodName: "Légumes (mix)", quantity: 200 },
-      { foodName: "Huile d'olive", quantity: 10 },
       { foodName: "Moutarde", quantity: 10 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
-    ],
-  },
-  {
-    slot: "DINNER",
-    variantKey: "cabillaud-riz",
-    displayName: "Cabillaud & riz",
-    description: "Poisson blanc très maigre, parfait en cut. Citron + herbes pour la saveur.",
-    items: [
-      { foodName: "Cabillaud cuit", quantity: 200 },
-      { foodName: "Riz cuit", quantity: 250 },
-      { foodName: "Légumes (mix)", quantity: 200 },
-      { foodName: "Huile d'olive", quantity: 10 },
-      { foodName: "Jus de citron", quantity: 10 },
-      { foodName: "Herbes fraîches", quantity: 5 },
-      { foodName: "Skyr / Fromage blanc 0%", quantity: 150 },
     ],
   },
 ];
