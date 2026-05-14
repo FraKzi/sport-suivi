@@ -17,6 +17,15 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  // Premier login : pas de programme actif → onboarding pour le configurer
+  const activeProgram = await prisma.userProgram.findFirst({
+    where: { userId: user.id, active: true },
+    select: { id: true },
+  });
+  if (!activeProgram) {
+    const { redirect } = await import("next/navigation");
+    redirect("/onboarding");
+  }
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   const weights = await prisma.weightLog.findMany({
     where: { userId: user.id },
