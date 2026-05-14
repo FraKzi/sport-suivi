@@ -32,6 +32,8 @@ export default async function JournalPage() {
               height: profile.heightCm,
               age: profile.age,
               sex: profile.sex,
+              waterTargetMl: profile.waterTargetMl,
+              stepsTarget: profile.stepsTarget,
             }
           : null
       }

@@ -7,9 +7,9 @@ import { WeightChart } from "@/components/WeightChart";
 import {
   buildDailyQuests,
   computeStreak,
-  DEFAULT_STEPS_TARGET,
+  effectiveBaseWaterTarget,
+  effectiveStepsTarget,
   localYmd,
-  WATER_ML_PER_KG,
   WATER_TRAINING_BONUS_ML,
 } from "@/lib/gamification";
 
@@ -90,9 +90,9 @@ export default async function DashboardPage() {
   const todayLog = recentLogs.find((l) => localYmd(l.date) === todayKey);
   const todayWorkout = recentSessions.find((s) => localYmd(s.date) === todayKey) ?? null;
 
-  const baseWaterTarget = Math.round(profile.currentWeight * WATER_ML_PER_KG);
+  const baseWaterTarget = effectiveBaseWaterTarget(profile);
   const waterTargetMl = baseWaterTarget + (todayWorkout ? WATER_TRAINING_BONUS_ML : 0);
-  const stepsTarget = DEFAULT_STEPS_TARGET;
+  const stepsTarget = effectiveStepsTarget(profile);
 
   const quests = buildDailyQuests({
     hasWorkout: !!todayWorkout,

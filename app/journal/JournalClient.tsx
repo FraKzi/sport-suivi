@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { Card, CardTitle, Field, Button, Badge } from "@/components/ui";
 import { Ring } from "@/components/Rings";
 import {
-  DEFAULT_STEPS_TARGET,
   WATER_ML_PER_KG,
   WATER_TRAINING_BONUS_ML,
   localYmd,
@@ -16,6 +15,8 @@ type Profile = {
   height: number;
   age: number;
   sex: "MALE" | "FEMALE";
+  waterTargetMl?: number | null;
+  stepsTarget?: number | null;
 };
 type LogEntry = { date: string; steps: number; waterMl: number };
 type WorkoutEntry = { date: string; durationMin: number | null; dayNumber: number };
@@ -29,6 +30,7 @@ type Props = {
 const KCAL_PER_STEP = 0.04;
 const KCAL_PER_MIN_WORKOUT = 6;
 const DEFAULT_WATER_TARGET_ML = 2500;
+const DEFAULT_STEPS_TARGET_CLIENT = 8000;
 
 function bmrMifflin(p: Profile): number {
   return p.sex === "MALE"
@@ -73,8 +75,11 @@ export function JournalClient({ profile, recentLogs, recentWorkouts }: Props) {
   const workoutKcal = Math.round(todayWorkoutMin * KCAL_PER_MIN_WORKOUT);
   const totalKcal = bmr + stepKcal + workoutKcal;
 
+  // Override prioritaire si l'utilisateur a personnalisé sur /profil
   const baseWaterTarget = profile
-    ? Math.round(profile.weight * WATER_ML_PER_KG)
+    ? profile.waterTargetMl != null && profile.waterTargetMl > 0
+      ? profile.waterTargetMl
+      : Math.round(profile.weight * WATER_ML_PER_KG)
     : DEFAULT_WATER_TARGET_ML;
   const trainingBonus = todayWorkoutMin > 0 ? WATER_TRAINING_BONUS_ML : 0;
   const waterTarget = baseWaterTarget + trainingBonus;
@@ -111,7 +116,10 @@ export function JournalClient({ profile, recentLogs, recentWorkouts }: Props) {
   }
 
   // ---- Anneaux de progression (Apple Watch style) ----
-  const stepsTarget = DEFAULT_STEPS_TARGET;
+  const stepsTarget =
+    profile?.stepsTarget != null && profile.stepsTarget > 0
+      ? profile.stepsTarget
+      : DEFAULT_STEPS_TARGET_CLIENT;
   const stepsPct = stepsTarget > 0 ? steps / stepsTarget : 0;
   const waterPctRing = waterTarget > 0 ? waterMl / waterTarget : 0;
   const workoutMinPct = todayWorkoutMin / 50; // 50 min = 100%
@@ -283,8 +291,10 @@ export function JournalClient({ profile, recentLogs, recentWorkouts }: Props) {
           </Button>
         </div>
         <p className="text-xs text-muted mt-3">
-          Objectif basé sur {WATER_ML_PER_KG} ml/kg de poids
-          {profile ? ` (${profile.weight} kg)` : ""}, +{WATER_TRAINING_BONUS_ML} ml les jours d'entraînement.
+          {profile?.waterTargetMl
+            ? `Objectif personnalisé (${profile.waterTargetMl} ml)`
+            : `Objectif basé sur ${WATER_ML_PER_KG} ml/kg de poids${profile ? ` (${profile.weight} kg)` : ""}`}
+          , +{WATER_TRAINING_BONUS_ML} ml les jours d&apos;entraînement.
         </p>
       </Card>
 
@@ -299,7 +309,7 @@ export function JournalClient({ profile, recentLogs, recentWorkouts }: Props) {
           durationMin: w.durationMin,
         }))}
         waterTargetMl={baseWaterTarget}
-        stepsTarget={DEFAULT_STEPS_TARGET}
+        stepsTarget={stepsTarget}
         sessionsPerWeekTarget={3}
       />
     </div>

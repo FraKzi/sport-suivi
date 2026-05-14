@@ -129,6 +129,11 @@ model UserProfile {
   activityLevel ActivityLevel @default(MODERATE)
   tdee          Int
   goal          Goal          @default(RECOMP)
+  // Objectifs custom : null = auto-calculé (35 ml/kg pour l'eau, 8000 pas/jour
+  // par défaut). Set par /api/profile/goals, reset via la même API en passant
+  // null.
+  waterTargetMl Int?
+  stepsTarget   Int?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }

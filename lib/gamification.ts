@@ -7,6 +7,28 @@ export const DEFAULT_STEPS_TARGET = 8000;
 export const WATER_ML_PER_KG = 35;
 export const WATER_TRAINING_BONUS_ML = 500;
 
+/**
+ * Cible d'eau quotidienne (base). Override prioritaire si l'utilisateur l'a
+ * personnalisée sur /profil, sinon auto-calculée à partir du poids
+ * (WATER_ML_PER_KG × kg). Le bonus d'entraînement est ajouté séparément
+ * par l'appelant (les jours où une séance a eu lieu).
+ */
+export function effectiveBaseWaterTarget(
+  profile: { currentWeight: number; waterTargetMl?: number | null } | null | undefined,
+): number {
+  if (!profile) return 2500;
+  if (profile.waterTargetMl != null && profile.waterTargetMl > 0) return profile.waterTargetMl;
+  return Math.round(profile.currentWeight * WATER_ML_PER_KG);
+}
+
+/** Cible de pas quotidienne. Override si set, sinon DEFAULT_STEPS_TARGET. */
+export function effectiveStepsTarget(
+  profile: { stepsTarget?: number | null } | null | undefined,
+): number {
+  if (profile?.stepsTarget != null && profile.stepsTarget > 0) return profile.stepsTarget;
+  return DEFAULT_STEPS_TARGET;
+}
+
 export function localYmd(d: Date | string): string {
   const date = typeof d === "string" ? new Date(d) : d;
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

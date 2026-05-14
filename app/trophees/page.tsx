@@ -8,7 +8,7 @@ import {
   type Achievement,
   type AchievementCategory,
 } from "@/lib/achievements";
-import { DEFAULT_STEPS_TARGET, WATER_ML_PER_KG } from "@/lib/gamification";
+import { effectiveBaseWaterTarget, effectiveStepsTarget } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +25,7 @@ export default async function TropheesPage() {
     orderBy: { date: "asc" },
   });
 
-  const waterTargetMl = profile
-    ? Math.round(profile.currentWeight * WATER_ML_PER_KG)
-    : 2500;
+  const waterTargetMl = effectiveBaseWaterTarget(profile);
 
   const achievements = computeAchievements({
     sessions: sessions.map((s) => ({
@@ -47,7 +45,7 @@ export default async function TropheesPage() {
       ? { bodyWeightKg: profile.currentWeight, sex: profile.sex }
       : null,
     waterTargetMl,
-    stepsTarget: DEFAULT_STEPS_TARGET,
+    stepsTarget: effectiveStepsTarget(profile),
   });
 
   // Regroupe par catégorie
