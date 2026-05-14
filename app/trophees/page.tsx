@@ -18,7 +18,7 @@ export default async function TropheesPage() {
   const sessions = await prisma.workoutSession.findMany({
     where: { userId: user.id },
     orderBy: { date: "asc" },
-    include: { sets: { include: { exercise: { select: { name: true } } } } },
+    include: { sets: { include: { userExercise: { select: { name: true } } } } },
   });
   const dailyLogs = await prisma.dailyLog.findMany({
     where: { userId: user.id },
@@ -35,7 +35,7 @@ export default async function TropheesPage() {
       sets: s.sets.map((set) => ({
         weightKg: set.weightKg,
         reps: set.reps,
-        exerciseName: set.exercise?.name ?? "",
+        exerciseName: set.userExercise?.name ?? "",
       })),
     })),
     dailyLogs: dailyLogs.map((l) => ({

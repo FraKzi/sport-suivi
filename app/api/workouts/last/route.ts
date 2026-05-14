@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const lastSession = await prisma.workoutSession.findFirst({
     where: { userId: user.id, dayNumber: day },
     orderBy: { date: "desc" },
-    include: { sets: { include: { exercise: true } } },
+    include: { sets: { include: { userExercise: true } } },
   });
 
   if (!lastSession) return NextResponse.json(null);

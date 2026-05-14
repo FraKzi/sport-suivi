@@ -6,7 +6,6 @@ import { allTimeBests, type RawSet, type AllTimeBests } from "@/lib/progression"
 
 export const dynamic = "force-dynamic";
 
-const DAY_LABEL: Record<number, string> = { 1: "Pull", 2: "Legs", 3: "Push" };
 const RECENT_DAYS = 7;
 
 function timeAgo(iso: string): string {
@@ -26,7 +25,14 @@ function isRecent(iso: string): boolean {
 export default async function PRsPage() {
   const user = await requireUser();
 
-  const exos = await prisma.exercise.findMany({
+  const program = await prisma.userProgram.findFirst({
+    where: { userId: user.id, active: true },
+    select: { daysLabels: true },
+  });
+  const daysLabels = program ? (JSON.parse(program.daysLabels) as string[]) : [];
+
+  const exos = await prisma.userExercise.findMany({
+    where: { program: { userId: user.id, active: true } },
     orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }],
   });
 
@@ -39,12 +45,12 @@ export default async function PRsPage() {
     include: { session: { select: { date: true } } },
   });
 
-  // Regroupe les sets par exerciceId
+  // Regroupe les sets par userExerciseId
   const setsByExo = new Map<number, RawSet[]>();
   for (const s of sets) {
-    if (s.exerciseId == null) continue;
-    if (!setsByExo.has(s.exerciseId)) setsByExo.set(s.exerciseId, []);
-    setsByExo.get(s.exerciseId)!.push({
+    if (s.userExerciseId == null) continue;
+    if (!setsByExo.has(s.userExerciseId)) setsByExo.set(s.userExerciseId, []);
+    setsByExo.get(s.userExerciseId)!.push({
       weightKg: s.weightKg!,
       reps: s.reps!,
       rpe: s.rpe,
@@ -73,9 +79,10 @@ export default async function PRsPage() {
     })
     .filter((r): r is ExoRecord => r !== null);
 
-  const byDay: ExoRecord[][] = [[], [], []];
+  const maxDay = Math.max(0, ...records.map((r) => r.exo.dayNumber));
+  const byDay: ExoRecord[][] = Array.from({ length: maxDay }, () => []);
   for (const r of records) {
-    if (r.exo.dayNumber >= 1 && r.exo.dayNumber <= 3) {
+    if (r.exo.dayNumber >= 1 && r.exo.dayNumber <= maxDay) {
       byDay[r.exo.dayNumber - 1].push(r);
     }
   }
@@ -138,7 +145,7 @@ export default async function PRsPage() {
           <div key={day} className="space-y-3">
             <div className="flex items-baseline gap-2">
               <h2 className="text-base font-semibold">
-                Jour {day} · {DAY_LABEL[day]}
+                Jour {day} · {daysLabels[day - 1] ?? ""}
               </h2>
               <span className="text-xs text-muted">
                 {dayRecords.length} exercice{dayRecords.length > 1 ? "s" : ""}

@@ -1,60 +1,57 @@
 /**
- * Mapping muscle canonique → mots-clés pour parser le texte `muscleGroups`
- * d'un Exercise. Pour chaque set d'un exo, on incrémente le compteur de
- * chaque muscle mentionné (compound lift = +1 set sur chaque muscle).
+ * Comptage du volume hebdomadaire par groupe musculaire. Travaille sur les
+ * enums MuscleGroup (primaryMuscle + secondaryMuscles CSV sur UserExercise).
+ * Un set sur un POLY compte +1 set sur chaque muscle ciblé (primaire + secondaires).
  */
 
-export type MuscleKey =
-  | "Pecs"
-  | "Dos"
-  | "Épaules"
-  | "Biceps"
-  | "Triceps"
-  | "Quadriceps"
-  | "Ischios"
-  | "Fessiers"
-  | "Mollets"
-  | "Abdos";
+import type { MuscleGroup } from "@prisma/client";
 
-const MUSCLE_KEYWORDS: Record<MuscleKey, string[]> = {
-  Pecs: ["pec", "poitrine"],
-  Dos: ["dos", "lat ", "lats", "(lats)", "dorsal", "trapèz"],
-  Épaules: ["épaul", "delto"],
-  Biceps: ["bicep"],
-  Triceps: ["tricep"],
-  Quadriceps: ["quad"],
-  Ischios: ["ischio", "hamstring"],
-  Fessiers: ["fessier", "glute"],
-  Mollets: ["mollet", "calf"],
-  Abdos: ["abdo", "abs", "gainage"],
+export type MuscleKey = MuscleGroup;
+
+export const MUSCLE_LABEL_FR: Record<MuscleGroup, string> = {
+  CHEST: "Pectoraux",
+  BACK: "Dos",
+  SHOULDERS: "Épaules",
+  BICEPS: "Biceps",
+  TRICEPS: "Triceps",
+  QUADS: "Quadriceps",
+  HAMSTRINGS: "Ischios",
+  GLUTES: "Fessiers",
+  CALVES: "Mollets",
+  ABS: "Abdos",
 };
 
-export const MUSCLE_EMOJI: Record<MuscleKey, string> = {
-  Pecs: "💥",
-  Dos: "🎒",
-  Épaules: "🤸",
-  Biceps: "💪",
-  Triceps: "💪",
-  Quadriceps: "🦵",
-  Ischios: "🦵",
-  Fessiers: "🍑",
-  Mollets: "🦵",
-  Abdos: "🎯",
+export const MUSCLE_EMOJI: Record<MuscleGroup, string> = {
+  CHEST: "💥",
+  BACK: "🎒",
+  SHOULDERS: "🤸",
+  BICEPS: "💪",
+  TRICEPS: "💪",
+  QUADS: "🦵",
+  HAMSTRINGS: "🦵",
+  GLUTES: "🍑",
+  CALVES: "🦵",
+  ABS: "🎯",
 };
 
-export const MUSCLES: MuscleKey[] = Object.keys(MUSCLE_KEYWORDS) as MuscleKey[];
+export const MUSCLES: MuscleGroup[] = [
+  "CHEST", "BACK", "SHOULDERS", "BICEPS", "TRICEPS",
+  "QUADS", "HAMSTRINGS", "GLUTES", "CALVES", "ABS",
+];
 
-export function parseMuscles(text: string | null | undefined): MuscleKey[] {
-  if (!text) return [];
-  const lower = text.toLowerCase();
-  const found = new Set<MuscleKey>();
-  for (const muscle of MUSCLES) {
-    const keywords = MUSCLE_KEYWORDS[muscle];
-    if (keywords.some((kw) => lower.includes(kw))) {
-      found.add(muscle);
+/** Convertit l'enum + CSV de secondaires en liste de muscles ciblés. */
+export function musclesFromExercise(
+  primary: MuscleGroup | null | undefined,
+  secondaryCsv: string | null | undefined,
+): MuscleGroup[] {
+  const out = new Set<MuscleGroup>();
+  if (primary) out.add(primary);
+  if (secondaryCsv) {
+    for (const m of secondaryCsv.split(",").map((s) => s.trim()).filter(Boolean)) {
+      if (MUSCLES.includes(m as MuscleGroup)) out.add(m as MuscleGroup);
     }
   }
-  return [...found];
+  return [...out];
 }
 
 // ===== Recommandations volume =====

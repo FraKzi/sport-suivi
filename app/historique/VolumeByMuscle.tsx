@@ -1,21 +1,23 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Card, CardTitle, Badge } from "@/components/ui";
+import type { MuscleGroup } from "@prisma/client";
+import { Card, CardTitle } from "@/components/ui";
 import {
   MUSCLES,
   MUSCLE_EMOJI,
+  MUSCLE_LABEL_FR,
+  musclesFromExercise,
   VOLUME_RECOMMENDATIONS,
   VOLUME_STATUS_COLOR,
   VOLUME_STATUS_LABEL,
   VOLUME_STATUS_TEXT,
   classifyVolume,
-  parseMuscles,
-  type MuscleKey,
 } from "@/lib/muscleGroups";
 
 type SetWithExo = {
-  date: string; // ISO de la session
-  muscleGroups: string | null;
+  date: string;
+  primaryMuscle: MuscleGroup | null;
+  secondaryMuscles: string | null;
 };
 
 type Props = { sets: SetWithExo[] };
@@ -28,35 +30,28 @@ export function VolumeByMuscle({ sets }: Props) {
 
   const setsPerMuscle = useMemo(() => {
     const cutoff = Date.now() - period * 86400_000;
-    const counts: Record<MuscleKey, number> = MUSCLES.reduce(
+    const counts: Record<MuscleGroup, number> = MUSCLES.reduce(
       (acc, m) => ({ ...acc, [m]: 0 }),
-      {} as Record<MuscleKey, number>,
+      {} as Record<MuscleGroup, number>,
     );
     for (const set of sets) {
       if (new Date(set.date).getTime() < cutoff) continue;
-      const muscles = parseMuscles(set.muscleGroups);
+      const muscles = musclesFromExercise(set.primaryMuscle, set.secondaryMuscles);
       for (const m of muscles) counts[m]++;
     }
     return counts;
   }, [sets, period]);
 
-  const totalSets = useMemo(
-    () =>
-      Object.values(setsPerMuscle).reduce((sum, n) => sum + n, 0) /
-      Math.max(1, MUSCLES.length / 4), // moyenne approximative
-    [setsPerMuscle],
-  );
-
-  // Trier par volume décroissant pour mettre en avant ce qui est travaillé
   const sortedMuscles = useMemo(
     () => [...MUSCLES].sort((a, b) => setsPerMuscle[b] - setsPerMuscle[a]),
     [setsPerMuscle],
   );
 
-  // Échelle d'affichage : on cale la barre 100% sur 20 sets (haut de la cible)
   const SCALE_MAX = 20;
 
-  const insufficient = sortedMuscles.filter((m) => setsPerMuscle[m] > 0 && setsPerMuscle[m] < VOLUME_RECOMMENDATIONS.insufficient);
+  const insufficient = sortedMuscles.filter(
+    (m) => setsPerMuscle[m] > 0 && setsPerMuscle[m] < VOLUME_RECOMMENDATIONS.insufficient,
+  );
   const noData = Object.values(setsPerMuscle).every((v) => v === 0);
 
   return (
@@ -98,12 +93,10 @@ export function VolumeByMuscle({ sets }: Props) {
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-sm flex items-center gap-2">
                       <span aria-hidden>{MUSCLE_EMOJI[muscle]}</span>
-                      <span className={isZero ? "text-muted" : ""}>{muscle}</span>
+                      <span className={isZero ? "text-muted" : ""}>{MUSCLE_LABEL_FR[muscle]}</span>
                     </span>
                     <span className="text-sm tabular-nums flex items-baseline gap-2">
-                      <span className={`font-medium ${VOLUME_STATUS_TEXT[status]}`}>
-                        {sets}
-                      </span>
+                      <span className={`font-medium ${VOLUME_STATUS_TEXT[status]}`}>{sets}</span>
                       <span className="text-[10px] text-muted">
                         séries · {VOLUME_STATUS_LABEL[status]}
                       </span>
@@ -116,15 +109,18 @@ export function VolumeByMuscle({ sets }: Props) {
                       }`}
                       style={{ width: `${pct}%` }}
                     />
-                    {/* Repères visuels : 4 (min stimulus), 10 (optimal start) */}
                     <div
                       className="absolute inset-y-0 w-px bg-muted/40"
-                      style={{ left: `${(VOLUME_RECOMMENDATIONS.insufficient / SCALE_MAX) * 100}%` }}
+                      style={{
+                        left: `${(VOLUME_RECOMMENDATIONS.insufficient / SCALE_MAX) * 100}%`,
+                      }}
                       title={`${VOLUME_RECOMMENDATIONS.insufficient} sets — seuil minimum`}
                     />
                     <div
                       className="absolute inset-y-0 w-px bg-muted/40"
-                      style={{ left: `${(VOLUME_RECOMMENDATIONS.maintenance / SCALE_MAX) * 100}%` }}
+                      style={{
+                        left: `${(VOLUME_RECOMMENDATIONS.maintenance / SCALE_MAX) * 100}%`,
+                      }}
                       title={`${VOLUME_RECOMMENDATIONS.maintenance} sets — début zone optimale`}
                     />
                   </div>
@@ -139,7 +135,7 @@ export function VolumeByMuscle({ sets }: Props) {
                 <span>⚠</span>
                 <span>
                   Sous-stimulé sur les {period} derniers jours :{" "}
-                  <strong>{insufficient.join(", ")}</strong>
+                  <strong>{insufficient.map((m) => MUSCLE_LABEL_FR[m]).join(", ")}</strong>
                 </span>
               </div>
             </div>
@@ -147,8 +143,8 @@ export function VolumeByMuscle({ sets }: Props) {
 
           <p className="text-xs text-muted mt-3">
             Cible scientifique : <strong className="text-text">10-20 séries/semaine</strong> par
-            muscle pour l'hypertrophie (Schoenfeld 2019). Les exercices polyarticulaires comptent
-            sur tous les muscles ciblés.
+            muscle pour l&apos;hypertrophie (Schoenfeld 2019). Les exercices polyarticulaires
+            comptent sur tous les muscles ciblés.
           </p>
         </>
       )}

@@ -8,40 +8,40 @@ import { CalendarHeatmap } from "./CalendarHeatmap";
 
 export const dynamic = "force-dynamic";
 
-const DAY_TITLE: Record<number, string> = {
-  1: "Pull",
-  2: "Legs",
-  3: "Push",
-};
-
 export default async function HistoriquePage() {
   const user = await requireUser();
+
+  const program = await prisma.userProgram.findFirst({
+    where: { userId: user.id, active: true },
+    select: { daysLabels: true },
+  });
+  const daysLabels = program ? (JSON.parse(program.daysLabels) as string[]) : [];
+
   const sessions = await prisma.workoutSession.findMany({
     where: { userId: user.id },
     orderBy: { date: "desc" },
     take: 50,
-    include: { sets: { include: { exercise: true } } },
+    include: { sets: { include: { userExercise: true } } },
   });
 
-  // Sets des 14 derniers jours (rolling window) pour le volume par muscle
+  // Sets des 14 derniers jours pour le volume par muscle
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000);
   const recentSets = await prisma.workoutSet.findMany({
     where: {
       session: { userId: user.id, date: { gte: fourteenDaysAgo } },
-      // Compte uniquement les séries effectivement renseignées (poids OU reps)
       OR: [{ weightKg: { not: null } }, { reps: { not: null } }],
     },
     include: {
       session: { select: { date: true } },
-      exercise: { select: { muscleGroups: true } },
+      userExercise: { select: { primaryMuscle: true, secondaryMuscles: true } },
     },
   });
   const volumeSets = recentSets.map((s) => ({
     date: s.session.date.toISOString(),
-    muscleGroups: s.exercise?.muscleGroups ?? null,
+    primaryMuscle: s.userExercise?.primaryMuscle ?? null,
+    secondaryMuscles: s.userExercise?.secondaryMuscles ?? null,
   }));
 
-  // Sets des 365 derniers jours pour la heatmap calendaire
   const yearAgo = new Date(Date.now() - 365 * 86400_000);
   const yearSets = await prisma.workoutSet.findMany({
     where: {
@@ -52,28 +52,35 @@ export default async function HistoriquePage() {
   });
   const heatmapSets = yearSets.map((s) => ({ date: s.session.date.toISOString() }));
 
-  // Données pour le graphe : meilleure série par exercice par séance (max charge × reps)
-  // Inclut les archivés : leurs séries passées doivent rester visibles dans la progression historique
-  const allExos = await prisma.exercise.findMany({ orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }] });
+  // Top set par UserExercise pour la progression chart — inclut archivés
+  // pour conserver l'historique visible.
+  const allExos = await prisma.userExercise.findMany({
+    where: { program: { userId: user.id, active: true } },
+    orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }],
+  });
 
   const sessionsAsc = [...sessions].reverse();
-  const series = allExos.map((exo) => {
-    const points: { date: string; volume: number; weight: number; reps: number }[] = [];
-    for (const s of sessionsAsc) {
-      const exoSets = s.sets.filter((set) => set.exerciseId === exo.id && set.weightKg && set.reps);
-      if (exoSets.length === 0) continue;
-      const top = exoSets.reduce((a, b) =>
-        (a.weightKg ?? 0) * (a.reps ?? 0) > (b.weightKg ?? 0) * (b.reps ?? 0) ? a : b
-      );
-      points.push({
-        date: s.date.toISOString(),
-        volume: (top.weightKg ?? 0) * (top.reps ?? 0),
-        weight: top.weightKg ?? 0,
-        reps: top.reps ?? 0,
-      });
-    }
-    return { exoId: exo.id, name: exo.name, points };
-  }).filter((s) => s.points.length > 0);
+  const series = allExos
+    .map((exo) => {
+      const points: { date: string; volume: number; weight: number; reps: number }[] = [];
+      for (const s of sessionsAsc) {
+        const exoSets = s.sets.filter(
+          (set) => set.userExerciseId === exo.id && set.weightKg && set.reps,
+        );
+        if (exoSets.length === 0) continue;
+        const top = exoSets.reduce((a, b) =>
+          (a.weightKg ?? 0) * (a.reps ?? 0) > (b.weightKg ?? 0) * (b.reps ?? 0) ? a : b,
+        );
+        points.push({
+          date: s.date.toISOString(),
+          volume: (top.weightKg ?? 0) * (top.reps ?? 0),
+          weight: top.weightKg ?? 0,
+          reps: top.reps ?? 0,
+        });
+      }
+      return { exoId: exo.id, name: exo.name, points };
+    })
+    .filter((s) => s.points.length > 0);
 
   return (
     <div className="space-y-6">
@@ -106,7 +113,8 @@ export default async function HistoriquePage() {
             <CardTitle>Toutes les séances</CardTitle>
             <ul className="divide-y divide-border">
               {sessions.map((s) => {
-                const exoCount = new Set(s.sets.map((x) => x.exerciseId)).size;
+                const exoCount = new Set(s.sets.map((x) => x.userExerciseId)).size;
+                const dayLabel = daysLabels[s.dayNumber - 1] ?? `Jour ${s.dayNumber}`;
                 return (
                   <li key={s.id} className="py-3 flex items-center justify-between">
                     <Link href={`/historique/${s.id}`} className="block hover:text-accent">
@@ -124,7 +132,7 @@ export default async function HistoriquePage() {
                         {s.durationMin ? ` · ${s.durationMin} min` : ""}
                       </div>
                     </Link>
-                    <Badge tone="accent">Jour {s.dayNumber} · {DAY_TITLE[s.dayNumber]}</Badge>
+                    <Badge tone="accent">{dayLabel}</Badge>
                   </li>
                 );
               })}

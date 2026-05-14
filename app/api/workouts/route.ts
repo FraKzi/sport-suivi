@@ -13,8 +13,8 @@ export async function GET(req: Request) {
     orderBy: { date: "desc" },
     include: {
       sets: {
-        include: { exercise: true },
-        orderBy: [{ exerciseId: "asc" }, { setNumber: "asc" }],
+        include: { userExercise: true },
+        orderBy: [{ userExerciseId: "asc" }, { setNumber: "asc" }],
       },
     },
   });
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 }
 
 const SET = z.object({
-  exerciseId: z.number().int(),
+  userExerciseId: z.number().int(),
   setNumber: z.number().int().min(1).max(20),
   weightKg: z.number().min(0).max(500).nullable().optional(),
   reps: z.number().int().min(0).max(200).nullable().optional(),
@@ -32,7 +32,7 @@ const SET = z.object({
 
 const POST_SCHEMA = z.object({
   date: z.string().datetime().optional(),
-  dayNumber: z.number().int().min(1).max(3),
+  dayNumber: z.number().int().min(1).max(7),
   durationMin: z.number().int().min(0).max(300).nullable().optional(),
   notes: z.string().max(1000).nullable().optional(),
   bodyWeight: z.number().min(30).max(300).nullable().optional(),
@@ -47,6 +47,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
+
+  // Sécurité : vérifier que tous les userExerciseId appartiennent au programme du user
+  const exoIds = [...new Set(data.sets.map((s) => s.userExerciseId))];
+  const ownedCount = await prisma.userExercise.count({
+    where: { id: { in: exoIds }, program: { userId: user.id } },
+  });
+  if (ownedCount !== exoIds.length) {
+    return NextResponse.json({ error: "Exercice inconnu" }, { status: 400 });
+  }
+
   const session = await prisma.workoutSession.create({
     data: {
       userId: user.id,
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
       bodyWeight: data.bodyWeight ?? null,
       sets: {
         create: data.sets.map((s) => ({
-          exerciseId: s.exerciseId,
+          userExerciseId: s.userExerciseId,
           setNumber: s.setNumber,
           weightKg: s.weightKg ?? null,
           reps: s.reps ?? null,

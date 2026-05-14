@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SessionLogger } from "./SessionLogger";
 import { computeBestVolumes } from "@/lib/gamification";
 
@@ -8,13 +8,24 @@ export const dynamic = "force-dynamic";
 
 export default async function DayPage({ params }: { params: { day: string } }) {
   const day = Number(params.day);
-  if (!day || day < 1 || day > 3) notFound();
+  if (!day || day < 1) notFound();
   const user = await requireUser();
 
-  const exos = await prisma.exercise.findMany({
-    where: { dayNumber: day, archived: false },
-    orderBy: { orderIndex: "asc" },
+  const program = await prisma.userProgram.findFirst({
+    where: { userId: user.id, active: true },
+    include: {
+      exercises: {
+        where: { dayNumber: day, archived: false },
+        orderBy: { orderIndex: "asc" },
+      },
+    },
   });
+  if (!program) redirect("/onboarding");
+  if (day > program.daysPerWeek) notFound();
+
+  const exos = program.exercises;
+  const daysLabels = JSON.parse(program.daysLabels) as string[];
+  const dayTitle = daysLabels[day - 1] ?? `Jour ${day}`;
 
   const lastSession = await prisma.workoutSession.findFirst({
     where: { userId: user.id, dayNumber: day },
@@ -24,32 +35,44 @@ export default async function DayPage({ params }: { params: { day: string } }) {
 
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
-  // Records historiques par exercice : volume max (kg × reps) du user uniquement
+  // Records historiques par UserExercise (volume max kg × reps)
   const allSets = await prisma.workoutSet.findMany({
     where: {
       session: { userId: user.id },
-      exerciseId: { in: exos.map((e) => e.id) },
+      userExerciseId: { in: exos.map((e) => e.id) },
     },
-    select: { exerciseId: true, weightKg: true, reps: true },
+    select: { userExerciseId: true, weightKg: true, reps: true },
   });
-  // exerciseId est nullable au niveau du schéma (transition vers UserExercise)
-  // mais ces lignes ont toutes exerciseId non-null car on filtre par `in`
   const bestVolumes = computeBestVolumes(
-    allSets.map((s) => ({ exerciseId: s.exerciseId!, weightKg: s.weightKg, reps: s.reps })),
+    allSets.map((s) => ({
+      exerciseId: s.userExerciseId!,
+      weightKg: s.weightKg,
+      reps: s.reps,
+    })),
   );
 
   return (
     <SessionLogger
       day={day}
-      exercises={exos}
+      dayTitle={dayTitle}
+      exercises={exos.map((e) => ({
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        prescription: e.prescription,
+        description: e.description,
+        primaryMuscle: e.primaryMuscle,
+        secondaryMuscles: e.secondaryMuscles,
+        orderIndex: e.orderIndex,
+      }))}
       lastSession={
         lastSession
           ? {
               date: lastSession.date.toISOString(),
               sets: lastSession.sets
-                .filter((s) => s.exerciseId != null)
+                .filter((s) => s.userExerciseId != null)
                 .map((s) => ({
-                  exerciseId: s.exerciseId!,
+                  userExerciseId: s.userExerciseId!,
                   setNumber: s.setNumber,
                   weightKg: s.weightKg,
                   reps: s.reps,

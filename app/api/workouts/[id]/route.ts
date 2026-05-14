@@ -7,7 +7,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const id = Number(params.id);
   const session = await prisma.workoutSession.findFirst({
     where: { id, userId: user.id },
-    include: { sets: { include: { exercise: true }, orderBy: [{ exerciseId: "asc" }, { setNumber: "asc" }] } },
+    include: {
+      sets: {
+        include: { userExercise: true },
+        orderBy: [{ userExerciseId: "asc" }, { setNumber: "asc" }],
+      },
+    },
   });
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(session);

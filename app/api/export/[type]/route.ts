@@ -27,16 +27,17 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
     case "workouts": {
       const sets = await prisma.workoutSet.findMany({
         where: { session: { userId: user.id } },
-        include: { session: true, exercise: true },
+        include: { session: true, userExercise: true },
         orderBy: [{ session: { date: "asc" } }, { sessionId: "asc" }, { setNumber: "asc" }],
       });
       const rows = sets.map((s) => ({
         date: ymd(s.session.date),
         session_id: s.sessionId,
         day_number: s.session.dayNumber,
-        exercise: s.exercise!.name,
-        type: s.exercise!.type,
-        muscle_groups: s.exercise!.muscleGroups ?? "",
+        exercise: s.userExercise?.name ?? "",
+        type: s.userExercise?.type ?? "",
+        primary_muscle: s.userExercise?.primaryMuscle ?? "",
+        secondary_muscles: s.userExercise?.secondaryMuscles ?? "",
         set_number: s.setNumber,
         weight_kg: s.weightKg ?? "",
         reps: s.reps ?? "",

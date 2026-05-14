@@ -14,13 +14,20 @@ export default async function ExerciseDetailPage({
   if (!Number.isFinite(id)) notFound();
   const user = await requireUser();
 
-  const exo = await prisma.exercise.findUnique({ where: { id } });
+  // Garde-fou : l'exo doit appartenir au programme du user (évite leak via id).
+  const exo = await prisma.userExercise.findFirst({
+    where: { id, program: { userId: user.id } },
+  });
   if (!exo) notFound();
 
-  // Tous les sets historiques du user (poids + reps requis pour les calculs)
+  const { MUSCLE_LABEL_FR, musclesFromExercise } = await import("@/lib/muscleGroups");
+  const muscleGroupsLabel = musclesFromExercise(exo.primaryMuscle, exo.secondaryMuscles)
+    .map((m) => MUSCLE_LABEL_FR[m])
+    .join(" · ");
+
   const sets = await prisma.workoutSet.findMany({
     where: {
-      exerciseId: id,
+      userExerciseId: id,
       session: { userId: user.id },
       weightKg: { not: null },
       reps: { not: null },
@@ -29,7 +36,6 @@ export default async function ExerciseDetailPage({
     orderBy: { id: "asc" },
   });
 
-  // Profil pour les standards de force (ratio e1RM / poids de corps)
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
   return (
@@ -41,7 +47,7 @@ export default async function ExerciseDetailPage({
         dayNumber: exo.dayNumber,
         prescription: exo.prescription,
         description: exo.description,
-        muscleGroups: exo.muscleGroups,
+        muscleGroups: muscleGroupsLabel || null,
         archived: exo.archived,
       }}
       sets={sets.map((s) => ({

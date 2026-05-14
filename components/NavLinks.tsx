@@ -11,7 +11,6 @@ const PRIMARY_TABS = [
 ];
 
 const SECONDARY_LINKS = [
-  { href: "/exercices", label: "Exercices", icon: "✏️" },
   { href: "/prs", label: "Records", icon: "🏆" },
   { href: "/trophees", label: "Trophées", icon: "🎖️" },
   { href: "/historique", label: "Historique", icon: "📅" },

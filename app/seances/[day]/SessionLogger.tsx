@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardTitle, Field, Button, Badge } from "@/components/ui";
 import { PlateCalculator } from "@/components/PlateCalculator";
-import type { Exercise } from "@prisma/client";
+import type { ExerciseType, MuscleGroup } from "@prisma/client";
 import { isPR } from "@/lib/gamification";
 import {
   REST_SECONDS_BY_TYPE,
@@ -11,9 +11,21 @@ import {
   formatRemaining,
   type LoadSuggestion,
 } from "@/lib/training";
+import { MUSCLE_LABEL_FR, musclesFromExercise } from "@/lib/muscleGroups";
+
+type Exo = {
+  id: number;
+  name: string;
+  type: ExerciseType;
+  prescription: string;
+  description: string | null;
+  primaryMuscle: MuscleGroup;
+  secondaryMuscles: string | null;
+  orderIndex: number;
+};
 
 type LastSet = {
-  exerciseId: number;
+  userExerciseId: number;
   setNumber: number;
   weightKg: number | null;
   reps: number | null;
@@ -22,14 +34,15 @@ type LastSet = {
 
 type Props = {
   day: number;
-  exercises: Exercise[];
+  dayTitle: string;
+  exercises: Exo[];
   lastSession: { date: string; sets: LastSet[] } | null;
   defaultBodyWeight: number | null;
   bestVolumes: Record<number, number>;
 };
 
 type SetRow = {
-  exerciseId: number;
+  userExerciseId: number;
   setNumber: number;
   weightKg: string;
   reps: string;
@@ -37,19 +50,19 @@ type SetRow = {
   notes: string;
 };
 
-const DAY_TITLES: Record<number, string> = {
-  1: "Pull — Dos / Biceps",
-  2: "Legs — Jambes",
-  3: "Push — Pecs / Épaules / Triceps",
-};
-
 function parseSetCount(prescription: string): number {
-  // "4×5-8", "3×8-10", "3 séries", "3×8-10 / jambe"
   const m = prescription.match(/^(\d+)/);
   return m ? Math.min(6, parseInt(m[1], 10)) : 3;
 }
 
-export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, bestVolumes }: Props) {
+export function SessionLogger({
+  day,
+  dayTitle,
+  exercises,
+  lastSession,
+  defaultBodyWeight,
+  bestVolumes,
+}: Props) {
   const router = useRouter();
 
   const initialRows = useMemo<SetRow[]>(() => {
@@ -57,9 +70,11 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
     for (const e of exercises) {
       const count = parseSetCount(e.prescription);
       for (let i = 1; i <= count; i++) {
-        const last = lastSession?.sets.find((s) => s.exerciseId === e.id && s.setNumber === i);
+        const last = lastSession?.sets.find(
+          (s) => s.userExerciseId === e.id && s.setNumber === i,
+        );
         rows.push({
-          exerciseId: e.id,
+          userExerciseId: e.id,
           setNumber: i,
           weightKg: last?.weightKg != null ? String(last.weightKg) : "",
           reps: last?.reps != null ? String(last.reps) : "",
@@ -73,7 +88,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
 
   const [rows, setRows] = useState<SetRow[]>(initialRows);
   const [bodyWeight, setBodyWeight] = useState<string>(
-    defaultBodyWeight ? String(defaultBodyWeight) : ""
+    defaultBodyWeight ? String(defaultBodyWeight) : "",
   );
   const [duration, setDuration] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -84,22 +99,20 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
   type RestState = {
     exerciseId: number;
     exerciseName: string;
-    duration: number; // secondes
-    endsAt: number; // epoch ms
+    duration: number;
+    endsAt: number;
   } | null;
   const [rest, setRest] = useState<RestState>(null);
   const [now, setNow] = useState(Date.now());
   const audioCtxRef = useRef<AudioContext | null>(null);
   const lastBeepRef = useRef<number>(0);
 
-  // Tick toutes les secondes quand un timer tourne
   useEffect(() => {
     if (!rest) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [rest]);
 
-  // Bip + vibration quand le timer arrive à zéro
   useEffect(() => {
     if (!rest) return;
     const remaining = (rest.endsAt - now) / 1000;
@@ -120,7 +133,6 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
       }
       const ctx = audioCtxRef.current;
       if (!ctx) return;
-      // 2 bips courts à 880 Hz
       [0, 0.25].forEach((offset) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -149,7 +161,6 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
       endsAt: Date.now() + seconds * 1000,
     });
     setNow(Date.now());
-    // Init AudioContext sur user gesture (politique navigateur)
     if (!audioCtxRef.current) {
       try {
         const Ctx = window.AudioContext || (window as any).webkitAudioContext;
@@ -167,13 +178,12 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
     setRest(null);
   }
 
-  // ===== SUGGESTIONS DE CHARGE =====
   const suggestionByExerciseId = useMemo(() => {
     const map: Record<number, LoadSuggestion | null> = {};
     if (!lastSession) return map;
     for (const e of exercises) {
       const sets = lastSession.sets
-        .filter((s) => s.exerciseId === e.id)
+        .filter((s) => s.userExerciseId === e.id)
         .map((s) => ({ weightKg: s.weightKg, reps: s.reps, rpe: s.rpe }));
       map[e.id] = computeLoadSuggestion(sets, e.prescription, e.type);
     }
@@ -183,7 +193,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
   function applySuggestion(exerciseId: number, kg: number) {
     setRows((prev) =>
       prev.map((r) =>
-        r.exerciseId === exerciseId ? { ...r, weightKg: String(kg) } : r,
+        r.userExerciseId === exerciseId ? { ...r, weightKg: String(kg) } : r,
       ),
     );
   }
@@ -194,17 +204,16 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
 
   function addSet(exerciseId: number) {
     setRows((prev) => {
-      const existing = prev.filter((r) => r.exerciseId === exerciseId);
+      const existing = prev.filter((r) => r.userExerciseId === exerciseId);
       const next: SetRow = {
-        exerciseId,
+        userExerciseId: exerciseId,
         setNumber: existing.length + 1,
         weightKg: "",
         reps: "",
         rpe: "",
         notes: "",
       };
-      // insère à la suite du dernier set de cet exo
-      const lastIdx = prev.map((r) => r.exerciseId).lastIndexOf(exerciseId);
+      const lastIdx = prev.map((r) => r.userExerciseId).lastIndexOf(exerciseId);
       const arr = [...prev];
       arr.splice(lastIdx + 1, 0, next);
       return arr;
@@ -215,10 +224,9 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
     setRows((prev) => {
       const target = prev[idx];
       const arr = prev.filter((_, i) => i !== idx);
-      // renumérote les sets de cet exo
       let n = 1;
       return arr.map((r) =>
-        r.exerciseId === target.exerciseId ? { ...r, setNumber: n++ } : r
+        r.userExerciseId === target.userExerciseId ? { ...r, setNumber: n++ } : r,
       );
     });
   }
@@ -230,7 +238,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
     const sets = rows
       .filter((r) => r.weightKg !== "" || r.reps !== "" || r.rpe !== "")
       .map((r) => ({
-        exerciseId: r.exerciseId,
+        userExerciseId: r.userExerciseId,
         setNumber: r.setNumber,
         weightKg: r.weightKg !== "" ? Number(r.weightKg) : null,
         reps: r.reps !== "" ? Number(r.reps) : null,
@@ -266,13 +274,16 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
 
   const lastDate = lastSession ? new Date(lastSession.date) : null;
 
-  // Compteur de PR potentiels sur la séance en cours
   const prCount = useMemo(() => {
     let count = 0;
     for (const r of rows) {
       const w = Number(r.weightKg);
       const reps = Number(r.reps);
-      if (Number.isFinite(w) && Number.isFinite(reps) && isPR(w, reps, bestVolumes[r.exerciseId])) {
+      if (
+        Number.isFinite(w) &&
+        Number.isFinite(reps) &&
+        isPR(w, reps, bestVolumes[r.userExerciseId])
+      ) {
         count++;
       }
     }
@@ -283,7 +294,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
     <div className="space-y-5">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold">{DAY_TITLES[day]}</h1>
+          <h1 className="text-2xl font-semibold">{dayTitle}</h1>
           {prCount > 0 && (
             <Badge tone="warning">
               ⭐ {prCount} PR potentiel{prCount > 1 ? "s" : ""}
@@ -324,7 +335,10 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
         {exercises.map((e) => {
           const exoRows = rows
             .map((r, i) => ({ row: r, idx: i }))
-            .filter(({ row }) => row.exerciseId === e.id);
+            .filter(({ row }) => row.userExerciseId === e.id);
+          const muscles = musclesFromExercise(e.primaryMuscle, e.secondaryMuscles)
+            .map((m) => MUSCLE_LABEL_FR[m])
+            .join(" · ");
           return (
             <Card key={e.id} className="!p-4 space-y-3">
               <div>
@@ -338,9 +352,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
                     <span className="text-xs text-muted">{e.prescription}</span>
                   </div>
                 </div>
-                {e.muscleGroups && (
-                  <div className="text-[11px] text-muted mt-1">{e.muscleGroups}</div>
-                )}
+                {muscles && <div className="text-[11px] text-muted mt-1">{muscles}</div>}
                 {e.description && (
                   <p className="text-xs text-muted mt-1.5 leading-relaxed">{e.description}</p>
                 )}
@@ -390,7 +402,7 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
                   const rowIsPR =
                     Number.isFinite(w) &&
                     Number.isFinite(reps) &&
-                    isPR(w, reps, bestVolumes[row.exerciseId]);
+                    isPR(w, reps, bestVolumes[row.userExerciseId]);
                   const canStartRest = w > 0 && reps > 0;
                   return (
                     <div
@@ -473,7 +485,6 @@ export function SessionLogger({ day, exercises, lastSession, defaultBodyWeight, 
         {msg && <span className="text-sm text-muted">{msg}</span>}
       </div>
 
-      {/* Timer de repos flottant */}
       {rest && (() => {
         const remaining = Math.max(0, (rest.endsAt - now) / 1000);
         const overtime = remaining === 0;
