@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { MealSlot } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,15 @@ const DELETE_SCHEMA = z.object({
 });
 
 export async function GET(req: Request) {
+  const user = await requireUser();
   const url = new URL(req.url);
   const date = url.searchParams.get("date");
   if (date && !YMD.test(date)) {
     return NextResponse.json({ error: "date invalide (YYYY-MM-DD)" }, { status: 400 });
   }
-  const where = date ? { date: parseYmd(date) } : {};
+  const where = date
+    ? { userId: user.id, date: parseYmd(date) }
+    : { userId: user.id };
   const list = await prisma.mealConsumption.findMany({
     where,
     orderBy: { date: "desc" },
@@ -38,6 +42,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser();
   const body = await req.json();
   const parsed = POST_SCHEMA.safeParse(body);
   if (!parsed.success) {
@@ -45,24 +50,27 @@ export async function POST(req: Request) {
   }
   const { date, slot, mealId } = parsed.data;
 
-  // Vérifie que le meal existe et correspond au slot
-  const meal = await prisma.meal.findUnique({ where: { id: mealId } });
-  if (!meal || meal.slot !== slot) {
+  // Vérifie que le meal existe ET appartient à un plan du user (anti-cross-user-meal)
+  const meal = await prisma.meal.findUnique({
+    where: { id: mealId },
+    include: { plan: { select: { userId: true } } },
+  });
+  if (!meal || meal.slot !== slot || meal.plan.userId !== user.id) {
     return NextResponse.json({ error: "Variante invalide pour ce slot" }, { status: 400 });
   }
 
   const dateAt = parseYmd(date);
   const consumption = await prisma.mealConsumption.upsert({
-    where: { date_slot: { date: dateAt, slot: slot as MealSlot } },
-    create: { date: dateAt, slot: slot as MealSlot, mealId },
+    where: { userId_date_slot: { userId: user.id, date: dateAt, slot: slot as MealSlot } },
+    create: { userId: user.id, date: dateAt, slot: slot as MealSlot, mealId },
     update: { mealId },
   });
   return NextResponse.json(consumption);
 }
 
 export async function DELETE(req: Request) {
+  const user = await requireUser();
   const body = await req.json().catch(() => null);
-  // Accepte soit body, soit query params
   const url = new URL(req.url);
   const payload = body ?? {
     date: url.searchParams.get("date"),
@@ -74,7 +82,7 @@ export async function DELETE(req: Request) {
   }
   const { date, slot } = parsed.data;
   await prisma.mealConsumption.deleteMany({
-    where: { date: parseYmd(date), slot: slot as MealSlot },
+    where: { userId: user.id, date: parseYmd(date), slot: slot as MealSlot },
   });
   return NextResponse.json({ ok: true });
 }

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { ProgressionView } from "./ProgressionView";
 
@@ -11,14 +12,16 @@ export default async function ExerciseDetailPage({
 }) {
   const id = Number(params.id);
   if (!Number.isFinite(id)) notFound();
+  const user = await requireUser();
 
   const exo = await prisma.exercise.findUnique({ where: { id } });
   if (!exo) notFound();
 
-  // Tous les sets historiques (poids + reps requis pour les calculs)
+  // Tous les sets historiques du user (poids + reps requis pour les calculs)
   const sets = await prisma.workoutSet.findMany({
     where: {
       exerciseId: id,
+      session: { userId: user.id },
       weightKg: { not: null },
       reps: { not: null },
     },
@@ -27,7 +30,7 @@ export default async function ExerciseDetailPage({
   });
 
   // Profil pour les standards de force (ratio e1RM / poids de corps)
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
   return (
     <ProgressionView

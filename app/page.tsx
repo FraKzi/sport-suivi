@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { Card, CardTitle, Stat, Badge } from "@/components/ui";
 import { computeTargets, GOAL_LABEL } from "@/lib/macros";
 import { WeightChart } from "@/components/WeightChart";
@@ -15,9 +16,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
-  const weights = await prisma.weightLog.findMany({ orderBy: { date: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
+  const weights = await prisma.weightLog.findMany({
+    where: { userId: user.id },
+    orderBy: { date: "asc" },
+  });
   const lastSessions = await prisma.workoutSession.findMany({
+    where: { userId: user.id },
     orderBy: { date: "desc" },
     take: 5,
     include: { sets: true },
@@ -27,12 +33,12 @@ export default async function DashboardPage() {
   const since = new Date();
   since.setDate(since.getDate() - 60);
   const recentSessions = await prisma.workoutSession.findMany({
-    where: { date: { gte: since } },
+    where: { userId: user.id, date: { gte: since } },
     select: { date: true, durationMin: true },
     orderBy: { date: "desc" },
   });
   const recentLogs = await prisma.dailyLog.findMany({
-    where: { date: { gte: since } },
+    where: { userId: user.id, date: { gte: since } },
     orderBy: { date: "desc" },
   });
 
@@ -40,7 +46,7 @@ export default async function DashboardPage() {
   const todayDate = new Date();
   todayDate.setUTCHours(0, 0, 0, 0);
   const todayConsumed = await prisma.mealConsumption.count({
-    where: { date: todayDate },
+    where: { userId: user.id, date: todayDate },
   });
 
   const targets = profile

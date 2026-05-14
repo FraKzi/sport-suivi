@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { computeTargets } from "@/lib/macros";
 import {
   generateSimplePlan,
@@ -11,17 +12,12 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Régénère un meal plan SIMPLE depuis les macros cibles du profil.
- *
- * - Upsert des 13 aliments par nom (catalogue Food).
- * - Désactive l'ancien plan `isBase=true` (passe à false) — ses Meals restent en
- *   DB pour préserver l'historique des MealConsumption.
- * - Crée un nouveau MealPlan `isBase=true` avec 3 Meals (variantKey="default").
- * - Vide UserMealPreference (les anciennes préférences pointent sur des meals
- *   d'un plan désactivé — fallback "default" prendra le relais sur le nouveau plan).
+ * Régénère un meal plan SIMPLE pour le user connecté depuis ses macros cibles.
+ * Les plans/préférences/Meals des autres users ne sont jamais touchés.
  */
 export async function POST() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   if (!profile) {
     return NextResponse.json(
       { error: "Profil manquant — renseigne ton profil d'abord." },
@@ -32,7 +28,7 @@ export async function POST() {
   const targets = computeTargets(profile.currentWeight, profile.tdee, profile.goal);
   const generated = generateSimplePlan(targets);
 
-  // 1) Upsert des aliments. Mappe foodKey → id réel en DB.
+  // 1) Upsert des aliments dans le catalogue partagé.
   const foodIdByKey = new Map<SimpleFoodKey, number>();
   for (const key of Object.keys(SIMPLE_FOODS) as SimpleFoodKey[]) {
     const f: SimpleFood = SIMPLE_FOODS[key];
@@ -59,18 +55,19 @@ export async function POST() {
     foodIdByKey.set(key, row.id);
   }
 
-  // 2) Désactive tous les plans isBase existants (n'efface rien).
+  // 2) Désactive l'ancien plan du user (n'efface rien — les MealConsumption gardent leur ref).
   await prisma.mealPlan.updateMany({
-    where: { isBase: true },
+    where: { userId: user.id, isBase: true },
     data: { isBase: false },
   });
 
-  // 3) Vide les préférences (elles pointent sur l'ancien plan).
-  await prisma.userMealPreference.deleteMany({});
+  // 3) Vide les préférences du user (pointaient sur l'ancien plan).
+  await prisma.userMealPreference.deleteMany({ where: { userId: user.id } });
 
-  // 4) Crée le nouveau plan + meals + items en une transaction.
+  // 4) Crée le nouveau plan + meals + items.
   const newPlan = await prisma.mealPlan.create({
     data: {
+      userId: user.id,
       label: `Plan simple ${new Date().toISOString().slice(0, 10)}`,
       isBase: true,
       meals: {

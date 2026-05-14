@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { toCSV, ymd } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ function isValidType(t: string): t is ExportType {
 }
 
 export async function GET(_req: Request, { params }: { params: { type: string } }) {
+  const user = await requireUser();
   const type = params.type;
   if (!isValidType(type)) {
     return NextResponse.json({ error: "type invalide" }, { status: 400 });
@@ -24,6 +26,7 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
   switch (type) {
     case "workouts": {
       const sets = await prisma.workoutSet.findMany({
+        where: { session: { userId: user.id } },
         include: { session: true, exercise: true },
         orderBy: [{ session: { date: "asc" } }, { sessionId: "asc" }, { setNumber: "asc" }],
       });
@@ -48,7 +51,10 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
       break;
     }
     case "weights": {
-      const logs = await prisma.weightLog.findMany({ orderBy: { date: "asc" } });
+      const logs = await prisma.weightLog.findMany({
+        where: { userId: user.id },
+        orderBy: { date: "asc" },
+      });
       const rows = logs.map((l) => ({
         date: ymd(l.date),
         weight_kg: l.weightKg,
@@ -59,7 +65,10 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
       break;
     }
     case "measurements": {
-      const ms = await prisma.bodyMeasurement.findMany({ orderBy: { date: "asc" } });
+      const ms = await prisma.bodyMeasurement.findMany({
+        where: { userId: user.id },
+        orderBy: { date: "asc" },
+      });
       const rows = ms.map((m) => ({
         date: ymd(m.date),
         waist_cm: m.waistCm ?? "",
@@ -76,7 +85,10 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
       break;
     }
     case "daily": {
-      const logs = await prisma.dailyLog.findMany({ orderBy: { date: "asc" } });
+      const logs = await prisma.dailyLog.findMany({
+        where: { userId: user.id },
+        orderBy: { date: "asc" },
+      });
       const rows = logs.map((l) => ({
         date: ymd(l.date),
         steps: l.steps,
@@ -90,6 +102,7 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
     }
     case "meals": {
       const list = await prisma.mealConsumption.findMany({
+        where: { userId: user.id },
         include: { meal: true },
         orderBy: [{ date: "asc" }, { slot: "asc" }],
       });
@@ -106,7 +119,6 @@ export async function GET(_req: Request, { params }: { params: { type: string } 
     }
   }
 
-  // BOM UTF-8 pour qu'Excel Windows détecte correctement les accents
   const body = "﻿" + csv;
 
   return new NextResponse(body, {

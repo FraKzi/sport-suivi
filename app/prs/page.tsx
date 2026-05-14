@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { Card, CardTitle, Badge, Stat } from "@/components/ui";
 import { allTimeBests, type RawSet, type AllTimeBests } from "@/lib/progression";
 
@@ -23,12 +24,18 @@ function isRecent(iso: string): boolean {
 }
 
 export default async function PRsPage() {
+  const user = await requireUser();
+
   const exos = await prisma.exercise.findMany({
     orderBy: [{ dayNumber: "asc" }, { orderIndex: "asc" }],
   });
 
   const sets = await prisma.workoutSet.findMany({
-    where: { weightKg: { not: null }, reps: { not: null } },
+    where: {
+      session: { userId: user.id },
+      weightKg: { not: null },
+      reps: { not: null },
+    },
     include: { session: { select: { date: true } } },
   });
 

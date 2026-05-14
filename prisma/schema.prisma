@@ -38,9 +38,63 @@ enum MealSlot {
   DINNER
 }
 
+// ============== AUTHENTIFICATION ==============
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique // case-insensitive — normalisé en lowercase à l'inscription
+  passwordHash String   // bcrypt cost 10
+  recoveryHash String   // bcrypt de la phrase de récupération (6 mots), affichée 1× à l'inscription
+  isAdmin      Boolean  @default(false) // peut créer des codes d'invitation
+  createdAt    DateTime @default(now())
+
+  profile          UserProfile?
+  weightLogs       WeightLog[]
+  bodyMeasurements BodyMeasurement[]
+  dailyLogs        DailyLog[]
+  workoutSessions  WorkoutSession[]
+  mealPlans        MealPlan[]
+  mealPreferences  UserMealPreference[]
+  mealConsumptions MealConsumption[]
+  profileSnapshots ProfileSnapshot[]
+  authSessions     AuthSession[]
+  invitesCreated   InviteCode[]         @relation("InviteCreator")
+  inviteUsed       InviteCode?          @relation("InviteConsumer")
+}
+
+// Session HTTP-only cookie. Le token aléatoire (32 bytes hex) est aussi l'id.
+model AuthSession {
+  id        String   @id // random hex token
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Code d'invitation à usage unique pour l'inscription.
+// Créé par un admin via /admin/invites ; consommé à l'inscription.
+model InviteCode {
+  code        String    @id // ex: "FRK-XXXX-YYYY"
+  createdById Int
+  createdBy   User      @relation("InviteCreator", fields: [createdById], references: [id])
+  usedById    Int?      @unique // null = pas encore utilisé
+  usedBy      User?     @relation("InviteConsumer", fields: [usedById], references: [id])
+  createdAt   DateTime  @default(now())
+  usedAt      DateTime?
+
+  @@index([createdById])
+}
+
+// ============== DOMAINE (scopé par userId) ==============
+
 model UserProfile {
   id            Int           @id @default(autoincrement())
-  displayName   String?       // prénom, nom ou pseudo affiché dans l'app
+  userId        Int           @unique // 1:1 avec User
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName   String?
   age           Int
   sex           Sex           @default(MALE)
   heightCm      Float
@@ -52,12 +106,10 @@ model UserProfile {
   updatedAt     DateTime      @updatedAt
 }
 
-// Snapshot des paramètres de calcul macro (poids / TDEE / activité / objectif).
-// Créé à chaque PUT /api/profile si une de ces 4 valeurs change → permet de
-// reconstruire l'historique des cibles macro dans le temps. Les autres champs
-// (nom, âge, sexe, taille) ne déclenchent pas de snapshot.
 model ProfileSnapshot {
   id            Int           @id @default(autoincrement())
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   date          DateTime      @default(now())
   age           Int
   sex           Sex
@@ -67,126 +119,141 @@ model ProfileSnapshot {
   tdee          Int
   goal          Goal
 
+  @@index([userId, date])
   @@index([date])
 }
 
 model WeightLog {
   id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      DateTime @default(now())
   weightKg  Float
   notes     String?
   createdAt DateTime @default(now())
 
+  @@index([userId, date])
   @@index([date])
 }
 
-// Mensurations corporelles : tour de taille, % MG, etc.
 model BodyMeasurement {
-  id          Int      @id @default(autoincrement())
-  date        DateTime @default(now())
-  waistCm     Float?   // tour de taille (au nombril, indicateur clé fat-loss)
-  hipCm       Float?   // tour de hanches (Navy formula F)
-  neckCm      Float?   // tour de cou (Navy formula)
-  chestCm     Float?   // tour de poitrine
-  armCm       Float?   // tour de bras (au plus large, contracté)
-  thighCm     Float?   // tour de cuisse
-  bodyFatPct  Float?   // saisie manuelle si dispo (impédancemètre, DEXA…)
-  notes       String?
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime @default(now())
+  waistCm    Float?
+  hipCm      Float?
+  neckCm     Float?
+  chestCm    Float?
+  armCm      Float?
+  thighCm    Float?
+  bodyFatPct Float?
+  notes      String?
+  createdAt  DateTime @default(now())
 
+  @@index([userId, date])
   @@index([date])
 }
 
-// Suivi journalier : pas, hydratation, notes. Une ligne par jour calendaire (UTC midnight).
+// Une ligne par jour calendaire (UTC midnight) PAR utilisateur.
 model DailyLog {
   id        Int      @id @default(autoincrement())
-  date      DateTime @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
   steps     Int      @default(0)
   waterMl   Int      @default(0)
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, date])
   @@index([date])
 }
 
+// Catalogue d'exercices partagé entre utilisateurs.
 model Exercise {
-  id            Int           @id @default(autoincrement())
-  name          String        @unique
-  type          ExerciseType
-  dayNumber     Int           // 1, 2 ou 3
-  orderIndex    Int           // ordre dans la séance
-  prescription  String        // ex: "4×5-8"
-  description   String?
-  muscleGroups  String?
-  archived      Boolean       @default(false) // soft-delete : exclus du programme actif mais conservés pour l'historique
-  sets          WorkoutSet[]
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  type         ExerciseType
+  dayNumber    Int
+  orderIndex   Int
+  prescription String
+  description  String?
+  muscleGroups String?
+  archived     Boolean      @default(false)
+  sets         WorkoutSet[]
 
   @@index([dayNumber, orderIndex])
   @@index([archived])
 }
 
 model WorkoutSession {
-  id          Int           @id @default(autoincrement())
-  date        DateTime      @default(now())
-  dayNumber   Int           // 1, 2, 3
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime     @default(now())
+  dayNumber   Int
   durationMin Int?
   notes       String?
   bodyWeight  Float?
-  createdAt   DateTime      @default(now())
+  createdAt   DateTime     @default(now())
   sets        WorkoutSet[]
 
+  @@index([userId, date])
   @@index([date])
 }
 
 model WorkoutSet {
-  id          Int             @id @default(autoincrement())
-  sessionId   Int
-  exerciseId  Int
-  setNumber   Int
-  weightKg    Float?
-  reps        Int?
-  rpe         Float?
-  notes       String?
-  session     WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  exercise    Exercise        @relation(fields: [exerciseId], references: [id])
+  id         Int            @id @default(autoincrement())
+  sessionId  Int
+  exerciseId Int
+  setNumber  Int
+  weightKg   Float?
+  reps       Int?
+  rpe        Float?
+  notes      String?
+  session    WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise   Exercise       @relation(fields: [exerciseId], references: [id])
 
   @@index([sessionId])
   @@index([exerciseId])
 }
 
-// Catalogue d'aliments avec macros par 100g (ou par unité pour les pièces)
+// Catalogue d'aliments partagé.
 model Food {
-  id           Int        @id @default(autoincrement())
-  name         String     @unique
-  unit         String     // "g", "ml", "piece"
-  unitGrams    Float?     // si unit=piece, équivalent en g (ex: 1 banane=120g)
-  kcalPer100   Float
+  id            Int        @id @default(autoincrement())
+  name          String     @unique
+  unit          String
+  unitGrams     Float?
+  kcalPer100    Float
   proteinPer100 Float
-  carbsPer100  Float
-  fatPer100    Float
-  items        MealItem[]
+  carbsPer100   Float
+  fatPer100     Float
+  items         MealItem[]
 }
 
-// Plan de base : conteneur des variantes de repas. Un seul plan isBase=true.
+// Plan alimentaire par utilisateur (chaque user a son propre plan isBase=true).
 model MealPlan {
-  id           Int       @id @default(autoincrement())
-  label        String
-  isBase       Boolean   @default(false)
-  generatedAt  DateTime  @default(now())
-  meals        Meal[]
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String
+  isBase      Boolean  @default(false)
+  generatedAt DateTime @default(now())
+  meals       Meal[]
+
+  @@index([userId, isBase])
 }
 
-// Une variante de repas pour un slot donné (PETIT-DÉJ / DÉJ / DÎNER).
-// Plusieurs variantes par slot ; l'utilisateur en active une via UserMealPreference.
 model Meal {
-  id           Int                 @id @default(autoincrement())
+  id           Int                  @id @default(autoincrement())
   planId       Int
   slot         MealSlot
-  variantKey   String              // "default", "skyr-avoine", "thon-pates"...
+  variantKey   String
   displayName  String
   description  String?
-  plan         MealPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan         MealPlan             @relation(fields: [planId], references: [id], onDelete: Cascade)
   items        MealItem[]
   preferences  UserMealPreference[]
   consumptions MealConsumption[]
@@ -195,35 +262,41 @@ model Meal {
   @@index([slot])
 }
 
-// Repas effectivement consommés (toggle "j'ai mangé") — 1 par slot par jour max.
 model MealConsumption {
   id        Int      @id @default(autoincrement())
-  date      DateTime // UTC midnight du jour calendaire
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
   slot      MealSlot
   mealId    Int
   meal      Meal     @relation(fields: [mealId], references: [id])
   createdAt DateTime @default(now())
 
-  @@unique([date, slot])
+  @@unique([userId, date, slot])
+  @@index([userId, date])
   @@index([date])
 }
 
 model MealItem {
-  id        Int    @id @default(autoincrement())
-  mealId    Int
-  foodId    Int
-  quantity  Float  // dans l'unité du Food (g, ml ou piece)
-  meal      Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
-  food      Food   @relation(fields: [foodId], references: [id])
+  id       Int   @id @default(autoincrement())
+  mealId   Int
+  foodId   Int
+  quantity Float
+  meal     Meal  @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food     Food  @relation(fields: [foodId], references: [id])
 
   @@index([mealId])
 }
 
-// Sélection courante de l'utilisateur pour chaque slot.
-// Une ligne max par slot (slot = clé primaire).
+// Variante active par slot, pour un user donné.
 model UserMealPreference {
-  slot      MealSlot @id
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot      MealSlot
   mealId    Int
   updatedAt DateTime @updatedAt
   meal      Meal     @relation(fields: [mealId], references: [id])
+
+  @@unique([userId, slot])
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { Card, CardTitle, Badge } from "@/components/ui";
 import { ProgressionChart } from "@/components/ProgressionChart";
 import { VolumeByMuscle } from "./VolumeByMuscle";
@@ -14,7 +15,9 @@ const DAY_TITLE: Record<number, string> = {
 };
 
 export default async function HistoriquePage() {
+  const user = await requireUser();
   const sessions = await prisma.workoutSession.findMany({
+    where: { userId: user.id },
     orderBy: { date: "desc" },
     take: 50,
     include: { sets: { include: { exercise: true } } },
@@ -24,7 +27,7 @@ export default async function HistoriquePage() {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000);
   const recentSets = await prisma.workoutSet.findMany({
     where: {
-      session: { date: { gte: fourteenDaysAgo } },
+      session: { userId: user.id, date: { gte: fourteenDaysAgo } },
       // Compte uniquement les séries effectivement renseignées (poids OU reps)
       OR: [{ weightKg: { not: null } }, { reps: { not: null } }],
     },
@@ -42,7 +45,7 @@ export default async function HistoriquePage() {
   const yearAgo = new Date(Date.now() - 365 * 86400_000);
   const yearSets = await prisma.workoutSet.findMany({
     where: {
-      session: { date: { gte: yearAgo } },
+      session: { userId: user.id, date: { gte: yearAgo } },
       OR: [{ weightKg: { not: null } }, { reps: { not: null } }],
     },
     include: { session: { select: { date: true } } },

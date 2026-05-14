@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MealSlot } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { computeTargets, rescalePlan, macrosForMeal } from "@/lib/macros";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +20,10 @@ const SLOT_ORDER: MealSlot[] = ["BREAKFAST", "LUNCH", "DINNER"];
  * - On scale les 3 variantes ensemble pour respecter les macros cibles.
  */
 export async function GET() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   const basePlan = await prisma.mealPlan.findFirst({
-    where: { isBase: true },
+    where: { userId: user.id, isBase: true },
     include: {
       meals: {
         include: { items: { include: { food: true } } },
@@ -57,7 +59,7 @@ export async function GET() {
   }
 
   // Préférences utilisateur (slot → mealId)
-  const prefs = await prisma.userMealPreference.findMany();
+  const prefs = await prisma.userMealPreference.findMany({ where: { userId: user.id } });
   const prefBySlot = new Map<MealSlot, number>(prefs.map((p) => [p.slot, p.mealId]));
 
   // Sélection des variantes actives pour chaque slot

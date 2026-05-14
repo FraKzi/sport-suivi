@@ -6,6 +6,7 @@ import { WeightLogger } from "./WeightLogger";
 import { VariantSelector } from "./VariantSelector";
 import { MealConsumedToggle } from "./MealConsumedToggle";
 import { RegenerateSimplePlan } from "./RegenerateSimplePlan";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -29,17 +30,22 @@ function todayUtcMidnight(): Date {
 }
 
 export default async function NutritionPage() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   const basePlan = await prisma.mealPlan.findFirst({
-    where: { isBase: true },
+    where: { userId: user.id, isBase: true },
     include: {
       meals: { include: { items: { include: { food: true } } } },
     },
   });
-  const prefs = await prisma.userMealPreference.findMany();
-  const weights = await prisma.weightLog.findMany({ orderBy: { date: "desc" }, take: 20 });
+  const prefs = await prisma.userMealPreference.findMany({ where: { userId: user.id } });
+  const weights = await prisma.weightLog.findMany({
+    where: { userId: user.id },
+    orderBy: { date: "desc" },
+    take: 20,
+  });
   const todayConsumed = await prisma.mealConsumption.findMany({
-    where: { date: todayUtcMidnight() },
+    where: { userId: user.id, date: todayUtcMidnight() },
   });
   const consumedBySlot = new Map(todayConsumed.map((c) => [c.slot, c.mealId]));
 

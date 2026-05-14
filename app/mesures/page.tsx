@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { MeasurementsView } from "./MeasurementsView";
 
 export const dynamic = "force-dynamic";
 
 export default async function MesuresPage() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   const measurements = await prisma.bodyMeasurement.findMany({
+    where: { userId: user.id },
     orderBy: { date: "desc" },
     take: 100,
   });

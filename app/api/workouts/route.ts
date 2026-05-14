@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const user = await requireUser();
   const url = new URL(req.url);
   const limit = Number(url.searchParams.get("limit") ?? "30");
   const sessions = await prisma.workoutSession.findMany({
+    where: { userId: user.id },
     take: limit,
     orderBy: { date: "desc" },
     include: {
@@ -37,6 +40,7 @@ const POST_SCHEMA = z.object({
 });
 
 export async function POST(req: Request) {
+  const user = await requireUser();
   const body = await req.json();
   const parsed = POST_SCHEMA.safeParse(body);
   if (!parsed.success) {
@@ -45,6 +49,7 @@ export async function POST(req: Request) {
   const data = parsed.data;
   const session = await prisma.workoutSession.create({
     data: {
+      userId: user.id,
       date: data.date ? new Date(data.date) : undefined,
       dayNumber: data.dayNumber,
       durationMin: data.durationMin ?? null,

@@ -389,47 +389,59 @@ async function main() {
   }
   console.log(`  ✓ ${foods.length} aliments`);
 
-  // On wipe le plan de base précédent (cascades sur Meal + MealItem)
-  await prisma.mealPlan.deleteMany({ where: { isBase: true } });
-  await prisma.userMealPreference.deleteMany();
-
   const allFoods = await prisma.food.findMany();
   const foodIdByName = new Map(allFoods.map((f) => [f.name, f.id]));
 
-  const plan = await prisma.mealPlan.create({
-    data: {
-      label: "base",
-      isBase: true,
-      meals: {
-        create: mealVariants.map((v) => ({
-          slot: v.slot,
-          variantKey: v.variantKey,
-          displayName: v.displayName,
-          description: v.description ?? null,
-          items: {
-            create: v.items.map((it) => ({
-              foodId: foodIdByName.get(it.foodName)!,
-              quantity: it.quantity,
-            })),
-          },
-        })),
-      },
-    },
-    include: { meals: true },
-  });
-
-  // Préférences par défaut : variante "default" pour chaque slot
-  for (const slot of ["BREAKFAST", "LUNCH", "DINNER"] as const) {
-    const def = plan.meals.find((m) => m.slot === slot && m.variantKey === "default");
-    if (!def) throw new Error(`Variante "default" manquante pour slot ${slot}`);
-    await prisma.userMealPreference.upsert({
-      where: { slot },
-      create: { slot, mealId: def.id },
-      update: { mealId: def.id },
-    });
+  // Multi-user : on (re)crée le plan de base pour CHAQUE utilisateur en DB.
+  // Les MealConsumption historiques pointent vers les anciens Meal ids — on
+  // ne supprime pas les anciens plans, on les passe juste à isBase=false.
+  const users = await prisma.user.findMany();
+  if (users.length === 0) {
+    console.warn("  ⚠ Aucun User en DB — skip du seed plan alimentaire.");
+    console.warn("     Lance d'abord `npx tsx prisma/migrate-multiuser.ts` pour créer frakzi.");
   }
+  for (const u of users) {
+    await prisma.mealPlan.updateMany({
+      where: { userId: u.id, isBase: true },
+      data: { isBase: false },
+    });
+    await prisma.userMealPreference.deleteMany({ where: { userId: u.id } });
 
-  console.log(`  ✓ Plan #${plan.id} : ${plan.meals.length} variantes`);
+    const plan = await prisma.mealPlan.create({
+      data: {
+        userId: u.id,
+        label: "base",
+        isBase: true,
+        meals: {
+          create: mealVariants.map((v) => ({
+            slot: v.slot,
+            variantKey: v.variantKey,
+            displayName: v.displayName,
+            description: v.description ?? null,
+            items: {
+              create: v.items.map((it) => ({
+                foodId: foodIdByName.get(it.foodName)!,
+                quantity: it.quantity,
+              })),
+            },
+          })),
+        },
+      },
+      include: { meals: true },
+    });
+
+    for (const slot of ["BREAKFAST", "LUNCH", "DINNER"] as const) {
+      const def = plan.meals.find((m) => m.slot === slot && m.variantKey === "default");
+      if (!def) throw new Error(`Variante "default" manquante pour slot ${slot}`);
+      await prisma.userMealPreference.upsert({
+        where: { userId_slot: { userId: u.id, slot } },
+        create: { userId: u.id, slot, mealId: def.id },
+        update: { mealId: def.id },
+      });
+    }
+
+    console.log(`  ✓ ${u.username} → plan #${plan.id} (${plan.meals.length} variantes)`);
+  }
   console.log("Seed terminé ✅");
 }
 

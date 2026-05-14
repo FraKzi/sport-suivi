@@ -25,10 +25,15 @@ function isActive(currentPath: string, linkHref: string): boolean {
   return currentPath === linkHref || currentPath.startsWith(linkHref + "/");
 }
 
+const AUTH_PATHS = ["/login", "/signup", "/forgot-password"];
+
 export function NavLinks() {
   const path = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Pages d'authentification → pas de nav
+  if (AUTH_PATHS.includes(path)) return null;
 
   useEffect(() => {
     setMounted(true);

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { Card, CardTitle, Stat } from "@/components/ui";
 import {
   computeAchievements,
@@ -12,12 +13,17 @@ import { DEFAULT_STEPS_TARGET, WATER_ML_PER_KG } from "@/lib/gamification";
 export const dynamic = "force-dynamic";
 
 export default async function TropheesPage() {
-  const profile = await prisma.userProfile.findFirst({ orderBy: { id: "asc" } });
+  const user = await requireUser();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
   const sessions = await prisma.workoutSession.findMany({
+    where: { userId: user.id },
     orderBy: { date: "asc" },
     include: { sets: { include: { exercise: { select: { name: true } } } } },
   });
-  const dailyLogs = await prisma.dailyLog.findMany({ orderBy: { date: "asc" } });
+  const dailyLogs = await prisma.dailyLog.findMany({
+    where: { userId: user.id },
+    orderBy: { date: "asc" },
+  });
 
   const waterTargetMl = profile
     ? Math.round(profile.currentWeight * WATER_ML_PER_KG)

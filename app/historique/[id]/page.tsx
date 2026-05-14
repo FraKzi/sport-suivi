@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Card, CardTitle, Badge } from "@/components/ui";
 import { DeleteSessionButton } from "./DeleteSessionButton";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function SessionDetailPage({ params }: { params: { id: string } }) {
   const id = Number(params.id);
   if (!Number.isFinite(id)) notFound();
+  const user = await requireUser();
 
   const session = await prisma.workoutSession.findUnique({
     where: { id },
@@ -20,7 +22,8 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
     },
   });
 
-  if (!session) notFound();
+  // Garde-fou : 404 si la session appartient à un autre user (évite leak via id)
+  if (!session || session.userId !== user.id) notFound();
 
   const byExo = session.sets.reduce<Record<number, typeof session.sets>>((acc, s) => {
     (acc[s.exerciseId] ??= []).push(s);

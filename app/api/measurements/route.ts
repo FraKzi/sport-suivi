@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ const POST_SCHEMA = z.object({
 });
 
 export async function GET() {
+  const user = await requireUser();
   const measurements = await prisma.bodyMeasurement.findMany({
+    where: { userId: user.id },
     orderBy: { date: "desc" },
     take: 100,
   });
@@ -25,13 +28,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser();
   const body = await req.json();
   const parsed = POST_SCHEMA.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
-  // Au moins une mesure utile
   const hasAny =
     data.waistCm != null ||
     data.hipCm != null ||
@@ -49,6 +52,7 @@ export async function POST(req: Request) {
 
   const m = await prisma.bodyMeasurement.create({
     data: {
+      userId: user.id,
       date: data.date ? new Date(data.date) : undefined,
       waistCm: data.waistCm ?? null,
       hipCm: data.hipCm ?? null,
