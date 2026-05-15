@@ -1,12 +1,12 @@
 import type { ActivityLevel, Goal } from "@prisma/client";
 
 /**
- * Standards fitness reconnus (Helms / Schoenfeld / Aragon) :
+ * Plancher protéines = 2 g/kg sur tous les objectifs (préférence utilisateur).
+ * Lipides fixés par objectif, glucides remplissent les kcal restantes.
  * - Sèche      : -20% TDEE, P 2.4 g/kg, F 0.8 g/kg
  * - Recomp     : maintien TDEE, P 2.2 g/kg, F 0.9 g/kg
- * - Prise      : +10% TDEE, P 1.8 g/kg, F 1.0 g/kg
- * - Maintien   : TDEE,        P 1.6 g/kg, F 1.0 g/kg
- * - Glucides   : remplissage des kcal restantes
+ * - Prise      : +10% TDEE, P 2.0 g/kg, F 1.0 g/kg
+ * - Maintien   : TDEE,        P 2.0 g/kg, F 1.0 g/kg
  */
 export type MacroTargets = {
   kcal: number;
@@ -25,8 +25,8 @@ export const GOAL_LABEL: Record<Goal, string> = {
 const RULES: Record<Goal, { kcalFactor: number; proteinPerKg: number; fatPerKg: number }> = {
   CUTTING:     { kcalFactor: 0.80, proteinPerKg: 2.4, fatPerKg: 0.8 },
   RECOMP:      { kcalFactor: 1.00, proteinPerKg: 2.2, fatPerKg: 0.9 },
-  BULKING:     { kcalFactor: 1.10, proteinPerKg: 1.8, fatPerKg: 1.0 },
-  MAINTENANCE: { kcalFactor: 1.00, proteinPerKg: 1.6, fatPerKg: 1.0 },
+  BULKING:     { kcalFactor: 1.10, proteinPerKg: 2.0, fatPerKg: 1.0 },
+  MAINTENANCE: { kcalFactor: 1.00, proteinPerKg: 2.0, fatPerKg: 1.0 },
 };
 
 export function computeTargets(weightKg: number, tdee: number, goal: Goal): MacroTargets {

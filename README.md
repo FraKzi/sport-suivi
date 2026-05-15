@@ -39,7 +39,7 @@ npm run db:studio    # GUI Prisma pour explorer la base
 |---|---|---|---|---|
 | Sèche | TDEE − 20% | 2.4 g/kg | 0.8 g/kg | reste |
 | Recomp | TDEE | 2.2 g/kg | 0.9 g/kg | reste |
-| Prise de masse | TDEE + 10% | 1.8 g/kg | 1.0 g/kg | reste |
-| Maintien | TDEE | 1.6 g/kg | 1.0 g/kg | reste |
+| Prise de masse | TDEE + 10% | 2.0 g/kg | 1.0 g/kg | reste |
+| Maintien | TDEE | 2.0 g/kg | 1.0 g/kg | reste |
 
 Les grammages du plan alimentaire sont **automatiquement recalculés** au prorata des cibles macro vs le plan de base, avec arrondis sensibles (5g pour les solides, 10ml pour les liquides, demi-pièce pour les unités).
